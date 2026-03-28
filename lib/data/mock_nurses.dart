@@ -1,0 +1,68 @@
+import '../models/nurse.dart';
+
+const List<Nurse> mockNurses = [
+  Nurse(
+    id: 'nurse_1',
+    name: 'Mariam',
+    floor: '1',
+    department: 'Surgery',
+    shiftStart: '7:00 AM',
+    shiftEnd: '3:00 PM',
+  ),
+  Nurse(
+    id: 'nurse_2',
+    name: 'Rim',
+    floor: '1',
+    department: 'ICU',
+    shiftStart: '7:00 AM',
+    shiftEnd: '3:00 PM',
+  ),
+  Nurse(
+    id: 'nurse_3',
+    name: 'Jana',
+    floor: '1',
+    department: 'Medical',
+    shiftStart: '3:00 PM',
+    shiftEnd: '11:00 PM',
+  ),
+  Nurse(
+    id: 'nurse_4',
+    name: 'Nadine',
+    floor: '1',
+    department: 'Surgery',
+    shiftStart: '11:00 PM',
+    shiftEnd: '7:00 AM',
+  ),
+  Nurse(
+    id: 'nurse_5',
+    name: 'Aya',
+    floor: '2',
+    department: 'Pediatrics',
+    shiftStart: '7:00 AM',
+    shiftEnd: '3:00 PM',
+  ),
+  Nurse(
+    id: 'nurse_6',
+    name: 'Hiba',
+    floor: '2',
+    department: 'Pediatrics',
+    shiftStart: '3:00 PM',
+    shiftEnd: '11:00 PM',
+  ),
+  Nurse(
+    id: 'nurse_7',
+    name: 'Salma',
+    floor: '2',
+    department: 'Medical',
+    shiftStart: '7:00 AM',
+    shiftEnd: '3:00 PM',
+  ),
+  Nurse(
+    id: 'nurse_8',
+    name: 'Lynn',
+    floor: '2',
+    department: 'Surgery',
+    shiftStart: '11:00 PM',
+    shiftEnd: '7:00 AM',
+  ),
+];
