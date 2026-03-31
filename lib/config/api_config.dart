@@ -4,6 +4,9 @@ class ApiConfig {
   // Keep mock auth enabled until the real backend URL and endpoint are ready.
   static const bool useMockAuth = true;
   static const bool useMockPatients = true;
+  static const String authHeaderName = 'Authorization';
+  static const String authTokenPrefix = 'Bearer';
+  static const int requestTimeoutSeconds = 15;
   static const String baseUrl = 'https://your-api-url.com/api';
   static const String loginEndpoint = '/auth/login';
   static const String patientsEndpoint = '/patients';

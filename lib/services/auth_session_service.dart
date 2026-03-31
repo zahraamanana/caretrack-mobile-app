@@ -30,6 +30,15 @@ class AuthSessionService {
     }
   }
 
+  Future<String?> loadToken() async {
+    final session = await loadSession();
+    final token = session?.token.trim();
+    if (token == null || token.isEmpty) {
+      return null;
+    }
+    return token;
+  }
+
   Future<AuthSession> saveSession(AuthResult result) async {
     final session = AuthSession(
       token: (result.token ?? 'session-active').trim(),

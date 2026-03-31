@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "947475772537",
+    "project_id": "caretrack-app-754ab",
+    "storage_bucket": "caretrack-app-754ab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:947475772537:android:a6390e1032993535f010a8",
+        "android_client_info": {
+          "package_name": "com.example.uilayout"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUoZdzaEm-3O9v1tbqZ-8Ug0lIj688D3c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,19 +1,33 @@
 import '../config/api_config.dart';
+import '../config/firebase_project_config.dart';
 import '../models/auth_result.dart';
 import 'api_service.dart';
+import 'firebase_auth_service.dart';
 
 class AuthService {
-  AuthService._({ApiService? apiService})
-    : _apiService = apiService ?? ApiService.instance;
+  AuthService._({
+    ApiService? apiService,
+    FirebaseAuthService? firebaseAuthService,
+  }) : _apiService = apiService ?? ApiService.instance,
+       _firebaseAuthService =
+           firebaseAuthService ?? FirebaseAuthService.instance;
 
   static final AuthService instance = AuthService._();
 
   final ApiService _apiService;
+  final FirebaseAuthService _firebaseAuthService;
 
   Future<AuthResult> signIn({
     required String email,
     required String password,
   }) async {
+    if (FirebaseProjectConfig.shouldUseFirebaseAuth) {
+      return _firebaseAuthService.signIn(
+        email: email,
+        password: password,
+      );
+    }
+
     if (ApiConfig.useMockAuth || !ApiConfig.hasConfiguredBaseUrl) {
       return _mockSignIn(email: email, password: password);
     }
@@ -24,6 +38,7 @@ class AuthService {
         'email': email,
         'password': password,
       },
+      requiresAuth: false,
     );
 
     return AuthResult(
@@ -32,6 +47,30 @@ class AuthService {
       user: _userFromResponse(response),
       isMock: false,
     );
+  }
+
+  Future<AuthResult> signUp({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    if (FirebaseProjectConfig.shouldUseFirebaseAuth) {
+      return _firebaseAuthService.signUp(
+        fullName: fullName,
+        email: email,
+        password: password,
+      );
+    }
+
+    throw const ApiException(
+      'Create Account is only available after Firebase Auth is enabled.',
+    );
+  }
+
+  Future<void> signOut() async {
+    if (FirebaseProjectConfig.shouldUseFirebaseAuth) {
+      await _firebaseAuthService.signOut();
+    }
   }
 
   Future<AuthResult> _mockSignIn({

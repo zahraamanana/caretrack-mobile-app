@@ -255,8 +255,12 @@ class AppLocalizations {
 
   String get mobileNursingAssistant => _text('mobileNursingAssistant');
   String get loginDescription => _text('loginDescription');
+  String get loginCredentialsHint => isArabic
+      ? 'استخدمي بريد المستشفى الخاص بكِ وكلمة المرور التي اخترتها.'
+      : 'Use your hospital email and your own password.';
   String get email => _text('email');
-  String get emailHint => _text('emailHint');
+  String get emailHint =>
+      isArabic ? 'name@hospital.com' : 'name@hospital.com';
   String get enterEmail => _text('enterEmail');
   String get validEmail => _text('validEmail');
   String get password => _text('password');
@@ -265,6 +269,31 @@ class AppLocalizations {
   String get forgotPassword => _text('forgotPassword');
   String get login => _text('login');
   String get createAccount => _text('createAccount');
+  String get createNurseAccount => isArabic
+      ? 'إنشاء حساب ممرضة'
+      : 'Create Nurse Account';
+  String get createAccountDescription => isArabic
+      ? 'أنشئي حسابكِ الخاص باستخدام اسمكِ وبريدكِ وكلمة المرور التي تختارينها.'
+      : 'Create your own nurse account with your name, email, and password.';
+  String get fullName => isArabic ? 'الاسم الكامل' : 'Full Name';
+  String get enterFullName =>
+      isArabic ? 'أدخلي الاسم الكامل' : 'Enter your full name';
+  String get confirmPassword =>
+      isArabic ? 'تأكيد كلمة المرور' : 'Confirm Password';
+  String get enterConfirmPassword => isArabic
+      ? 'أدخلي تأكيد كلمة المرور'
+      : 'Enter your password again';
+  String get passwordsDoNotMatch => isArabic
+      ? 'كلمتا المرور غير متطابقتين'
+      : 'Passwords do not match';
+  String get creatingAccount =>
+      isArabic ? 'جارٍ إنشاء الحساب...' : 'Creating account...';
+  String get accountCreated => isArabic
+      ? 'تم إنشاء الحساب بنجاح.'
+      : 'Account created successfully.';
+  String get accountCreateFailed => isArabic
+      ? 'تعذر إنشاء الحساب. حاولي مرة ثانية.'
+      : 'Unable to create the account. Please try again.';
   String get patients => _text('patients');
   String get assignedPatients => _text('assignedPatients');
   String get searchHint => isArabic

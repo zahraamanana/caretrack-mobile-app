@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
+import 'auth_session_service.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -14,15 +17,21 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  ApiService._({http.Client? client}) : _client = client ?? http.Client();
+  ApiService._({
+    http.Client? client,
+    AuthSessionService? authSessionService,
+  }) : _client = client ?? http.Client(),
+       _authSessionService = authSessionService ?? AuthSessionService.instance;
 
   static final ApiService instance = ApiService._();
 
   final http.Client _client;
+  final AuthSessionService _authSessionService;
 
   Future<dynamic> get(
     String path, {
     Map<String, String>? headers,
+    bool requiresAuth = true,
   }) async {
     if (!ApiConfig.hasConfiguredBaseUrl) {
       throw const ApiException(
@@ -31,12 +40,16 @@ class ApiService {
     }
 
     final uri = Uri.parse('${ApiConfig.baseUrl}$path');
-    final response = await _client.get(
-      uri,
-      headers: {
-        'Accept': 'application/json',
-        ...?headers,
-      },
+    final requestHeaders = await _buildHeaders(
+      headers: headers,
+      requiresAuth: requiresAuth,
+      includeJsonContentType: false,
+    );
+    final response = await _sendRequest(
+      () => _client.get(
+        uri,
+        headers: requestHeaders,
+      ),
     );
 
     final decodedBody = _decodeBody(response.body);
@@ -55,12 +68,14 @@ class ApiService {
     String path, {
     Map<String, dynamic>? body,
     Map<String, String>? headers,
+    bool requiresAuth = true,
   }) async {
     return _sendJson(
       method: 'POST',
       path: path,
       body: body,
       headers: headers,
+      requiresAuth: requiresAuth,
     );
   }
 
@@ -68,12 +83,14 @@ class ApiService {
     String path, {
     Map<String, dynamic>? body,
     Map<String, String>? headers,
+    bool requiresAuth = true,
   }) async {
     return _sendJson(
       method: 'PUT',
       path: path,
       body: body,
       headers: headers,
+      requiresAuth: requiresAuth,
     );
   }
 
@@ -81,12 +98,14 @@ class ApiService {
     String path, {
     Map<String, dynamic>? body,
     Map<String, String>? headers,
+    bool requiresAuth = true,
   }) async {
     return _sendJson(
       method: 'DELETE',
       path: path,
       body: body,
       headers: headers,
+      requiresAuth: requiresAuth,
     );
   }
 
@@ -95,6 +114,7 @@ class ApiService {
     required String path,
     Map<String, dynamic>? body,
     Map<String, String>? headers,
+    required bool requiresAuth,
   }) async {
     if (!ApiConfig.hasConfiguredBaseUrl) {
       throw const ApiException(
@@ -104,33 +124,39 @@ class ApiService {
 
     final uri = Uri.parse('${ApiConfig.baseUrl}$path');
     late final http.Response response;
-    final requestHeaders = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...?headers,
-    };
+    final requestHeaders = await _buildHeaders(
+      headers: headers,
+      requiresAuth: requiresAuth,
+      includeJsonContentType: true,
+    );
     final encodedBody = jsonEncode(body ?? const <String, dynamic>{});
 
     switch (method) {
       case 'POST':
-        response = await _client.post(
-          uri,
-          headers: requestHeaders,
-          body: encodedBody,
+        response = await _sendRequest(
+          () => _client.post(
+            uri,
+            headers: requestHeaders,
+            body: encodedBody,
+          ),
         );
         break;
       case 'PUT':
-        response = await _client.put(
-          uri,
-          headers: requestHeaders,
-          body: encodedBody,
+        response = await _sendRequest(
+          () => _client.put(
+            uri,
+            headers: requestHeaders,
+            body: encodedBody,
+          ),
         );
         break;
       case 'DELETE':
-        response = await _client.delete(
-          uri,
-          headers: requestHeaders,
-          body: encodedBody,
+        response = await _sendRequest(
+          () => _client.delete(
+            uri,
+            headers: requestHeaders,
+            body: encodedBody,
+          ),
         );
         break;
       default:
@@ -150,6 +176,53 @@ class ApiService {
       _extractMessage(decodedBody) ??
           'Request failed with status code ${response.statusCode}.',
     );
+  }
+
+  Future<Map<String, String>> _buildHeaders({
+    Map<String, String>? headers,
+    required bool requiresAuth,
+    required bool includeJsonContentType,
+  }) async {
+    final builtHeaders = <String, String>{
+      'Accept': 'application/json',
+      ...?headers,
+    };
+
+    if (includeJsonContentType) {
+      builtHeaders.putIfAbsent('Content-Type', () => 'application/json');
+    }
+
+    if (requiresAuth && !builtHeaders.containsKey(ApiConfig.authHeaderName)) {
+      final token = await _authSessionService.loadToken();
+      if (token != null && token.isNotEmpty) {
+        builtHeaders[ApiConfig.authHeaderName] =
+            '${ApiConfig.authTokenPrefix} $token';
+      }
+    }
+
+    return builtHeaders;
+  }
+
+  Future<http.Response> _sendRequest(
+    Future<http.Response> Function() request,
+  ) async {
+    try {
+      return await request().timeout(
+        const Duration(seconds: ApiConfig.requestTimeoutSeconds),
+      );
+    } on TimeoutException {
+      throw const ApiException(
+        'The server took too long to respond. Please try again.',
+      );
+    } on SocketException {
+      throw const ApiException(
+        'No internet connection. Please check your network and try again.',
+      );
+    } on http.ClientException {
+      throw const ApiException(
+        'Could not reach the server. Please try again.',
+      );
+    }
   }
 
   dynamic _decodeBody(String body) {

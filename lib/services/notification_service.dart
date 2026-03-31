@@ -6,6 +6,7 @@ class NotificationService {
   NotificationService._();
 
   static final NotificationService instance = NotificationService._();
+  static const int _maxNotificationId = 2147483647;
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   late final tz.Location _utcLocation;
@@ -108,9 +109,26 @@ class NotificationService {
     required int taskCount,
   }) async {
     for (var index = 0; index < taskCount; index++) {
-      await _plugin.cancel(roomNumber.hashCode + index);
-      await _plugin.cancel((roomNumber.hashCode + index) * 100);
+      await _plugin.cancel(scheduledMedicationReminderId(roomNumber, index));
+      await _plugin.cancel(testMedicationReminderId(roomNumber, index));
     }
+  }
+
+  int scheduledMedicationReminderId(String roomNumber, int index) {
+    return _safeNotificationId('${roomNumber}_scheduled_$index');
+  }
+
+  int testMedicationReminderId(String roomNumber, int index) {
+    return _safeNotificationId('${roomNumber}_test_$index');
+  }
+
+  int _safeNotificationId(String seed) {
+    var hash = 0;
+    for (final codeUnit in seed.codeUnits) {
+      hash = (hash * 31 + codeUnit) & 0x7fffffff;
+    }
+    if (hash == 0) return 1;
+    return hash % _maxNotificationId;
   }
 
   DateTime _resolveScheduledTime(String dueTime) {

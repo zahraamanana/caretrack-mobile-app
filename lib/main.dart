@@ -8,6 +8,7 @@ import 'providers/patient_provider.dart';
 import 'repositories/patient_repository.dart';
 import 'repositories/nurse_repository.dart';
 import 'services/app_language_service.dart';
+import 'services/firebase_bootstrap_service.dart';
 import 'services/local_database_service.dart';
 import 'services/notification_service.dart';
 import 'utils/app_colors.dart';
@@ -16,6 +17,7 @@ import 'widgets/auth_gate.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppLanguageService.instance.loadSavedLanguage();
+  await FirebaseBootstrapService.instance.initialize();
   await LocalDatabaseService.instance.initialize();
   await PatientRepository.instance.seedPatientsIfNeeded();
   await NurseRepository.instance.seedNursesIfNeeded();

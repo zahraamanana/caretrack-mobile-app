@@ -51,7 +51,31 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<AuthResult> signUp({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    _isSubmitting = true;
+    notifyListeners();
+
+    try {
+      final result = await _authService.signUp(
+        fullName: fullName,
+        email: email,
+        password: password,
+      );
+      _session = await _sessionService.saveSession(result);
+      notifyListeners();
+      return result;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> signOut() async {
+    await _authService.signOut();
     await _sessionService.clearSession();
     _session = null;
     notifyListeners();

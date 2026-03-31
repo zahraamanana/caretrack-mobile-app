@@ -85,6 +85,37 @@ class PatientSyncService {
     await LocalDatabaseService.instance.patientSyncQueueBox.delete(queueKey);
   }
 
+  Future<void> clearPendingChangesForPatient({
+    required String roomNumber,
+    String? previousRoomNumber,
+  }) async {
+    await LocalDatabaseService.instance.initialize();
+    final box = LocalDatabaseService.instance.patientSyncQueueBox;
+    final keysToDelete = <String>[];
+
+    for (final key in box.keys) {
+      final entry = box.get(key);
+      if (entry == null) continue;
+
+      final queuedRoom = entry['roomNumber'] as String? ?? '';
+      final queuedPreviousRoom = entry['previousRoomNumber'] as String? ?? '';
+
+      final matchesCurrent = queuedRoom == roomNumber || queuedPreviousRoom == roomNumber;
+      final matchesPrevious =
+          previousRoomNumber != null &&
+          previousRoomNumber.isNotEmpty &&
+          (queuedRoom == previousRoomNumber || queuedPreviousRoom == previousRoomNumber);
+
+      if (matchesCurrent || matchesPrevious) {
+        keysToDelete.add(key.toString());
+      }
+    }
+
+    for (final key in keysToDelete) {
+      await box.delete(key);
+    }
+  }
+
   Future<DateTime?> getLastPatientsPullAt() async {
     await LocalDatabaseService.instance.initialize();
     final rawValue = LocalDatabaseService.instance.syncMetadataBox.get(

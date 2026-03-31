@@ -5,6 +5,7 @@ import '../localization/app_localizations.dart';
 import '../models/patient.dart';
 import '../repositories/patient_repository.dart';
 import '../services/app_language_service.dart';
+import '../services/firebase_patient_care_service.dart';
 import '../services/notification_service.dart';
 import '../services/patient_storage_service.dart';
 import '../widgets/language_selector_button.dart';
@@ -126,6 +127,19 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
       roomNumber: _patient.roomNumber,
       values: _taskCompletion,
     );
+
+    unawaited(
+      FirebasePatientCareService.instance.syncTasks(
+        patient: _patient,
+        completionValues: _taskCompletion,
+      ),
+    );
+    unawaited(
+      FirebasePatientCareService.instance.syncMedications(
+        patient: _patient,
+        completionValues: _taskCompletion,
+      ),
+    );
   }
 
   Future<void> _saveVitalSigns() async {
@@ -141,6 +155,13 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
       roomNumber: _patient.roomNumber,
       value: updatedValue,
     );
+
+    try {
+      await FirebasePatientCareService.instance.syncVitals(
+        patient: _patient,
+        vitalSigns: updatedValue,
+      );
+    } catch (_) {}
 
     if (!mounted) return;
 
@@ -250,6 +271,14 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         roomNumber: updatedPatient.roomNumber,
         values: updatedCompletion,
       );
+      await FirebasePatientCareService.instance.syncTasks(
+        patient: updatedPatient,
+        completionValues: updatedCompletion,
+      );
+      await FirebasePatientCareService.instance.syncMedications(
+        patient: updatedPatient,
+        completionValues: updatedCompletion,
+      );
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -337,6 +366,14 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         roomNumber: updatedPatient.roomNumber,
         values: updatedCompletion,
       );
+      await FirebasePatientCareService.instance.syncTasks(
+        patient: updatedPatient,
+        completionValues: updatedCompletion,
+      );
+      await FirebasePatientCareService.instance.syncMedications(
+        patient: updatedPatient,
+        completionValues: updatedCompletion,
+      );
 
       unawaited(
         NotificationService.instance.cancelPatientReminders(
@@ -358,10 +395,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   Future<void> _sendMedicationReminderForTask(int index) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final reminderId = NotificationService.instance
+        .scheduledMedicationReminderId(_patient.roomNumber, index);
 
     final scheduledFor = await NotificationService.instance
         .scheduleMedicationReminder(
-      id: _patient.roomNumber.hashCode + index,
+      id: reminderId,
       patientName: _patient.name,
       taskTitle: _patient.medicationTasks[index].title,
       dueTime: _patient.medicationTasks[index].dueTime,
@@ -380,9 +419,11 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   Future<void> _sendTestMedicationNotification(int index) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final reminderId = NotificationService.instance
+        .testMedicationReminderId(_patient.roomNumber, index);
 
     await NotificationService.instance.showMedicationReminder(
-      id: (_patient.roomNumber.hashCode + index) * 100,
+      id: reminderId,
       patientName: _patient.name,
       taskTitle: _patient.medicationTasks[index].title,
       dueTime: _patient.medicationTasks[index].dueTime,
@@ -405,10 +446,10 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   Future<void> _cancelMedicationReminderForTask(int index) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final reminderId = NotificationService.instance
+        .scheduledMedicationReminderId(_patient.roomNumber, index);
 
-    await NotificationService.instance.cancelMedicationReminder(
-      _patient.roomNumber.hashCode + index,
-    );
+    await NotificationService.instance.cancelMedicationReminder(reminderId);
 
     if (!mounted) return;
 

@@ -1,7 +1,10 @@
 import '../config/api_config.dart';
+import '../config/firebase_project_config.dart';
 import '../data/mock_patients.dart';
 import '../models/patient.dart';
 import '../models/patients_sync_result.dart';
+import '../services/firebase_patient_care_service.dart';
+import '../services/firebase_patients_service.dart';
 import '../services/local_database_service.dart';
 import '../services/notification_service.dart';
 import '../services/patients_api_service.dart';
@@ -32,6 +35,46 @@ class PatientRepository {
   Future<PatientsSyncResult> syncPatientsFromApi() async {
     final lastPulledAt = await PatientSyncService.instance.getLastPatientsPullAt();
     final pendingChanges = await PatientSyncService.instance.getPendingChangesCount();
+
+    if (FirebaseProjectConfig.shouldUseFirestorePatients) {
+      final queuedChanges = await PatientSyncService.instance.getPendingChanges();
+      for (final entry in queuedChanges) {
+        switch (entry.action) {
+          case PatientSyncAction.create:
+            final patient = entry.patient;
+            if (patient != null) {
+              await FirebasePatientsService.instance.upsertPatient(patient);
+            }
+            break;
+          case PatientSyncAction.update:
+            final patient = entry.patient;
+            if (patient != null) {
+              final previousRoom = entry.previousRoomNumber;
+              if (previousRoom != null &&
+                  previousRoom.isNotEmpty &&
+                  previousRoom != patient.roomNumber) {
+                await FirebasePatientsService.instance.deletePatient(previousRoom);
+              }
+              await FirebasePatientsService.instance.upsertPatient(patient);
+            }
+            break;
+          case PatientSyncAction.delete:
+            final targetRoom = (entry.previousRoomNumber != null &&
+                    entry.previousRoomNumber!.isNotEmpty)
+                ? entry.previousRoomNumber!
+                : entry.roomNumber;
+            await FirebasePatientsService.instance.deletePatient(targetRoom);
+            break;
+        }
+        await PatientSyncService.instance.removePendingChange(entry.queueKey);
+      }
+
+      final remotePatients = await FirebasePatientsService.instance.fetchPatients();
+      await savePatients(remotePatients);
+      final syncedAt = DateTime.now();
+      await PatientSyncService.instance.saveLastPatientsPullAt(syncedAt);
+      return PatientsSyncResult.synced(syncedAt: syncedAt);
+    }
 
     if (!ApiConfig.canUseRealPatientsApi) {
       return PatientsSyncResult.notConfigured(
@@ -101,6 +144,15 @@ class PatientRepository {
 
     await box.put(patient.roomNumber, patient.toMap());
     await PatientSyncService.instance.enqueueCreate(patient);
+
+    if (FirebaseProjectConfig.shouldUseFirestorePatients) {
+      try {
+        await FirebasePatientsService.instance.upsertPatient(patient);
+        await PatientSyncService.instance.clearPendingChangesForPatient(
+          roomNumber: patient.roomNumber,
+        );
+      } catch (_) {}
+    }
   }
 
   Future<void> updatePatient(
@@ -129,6 +181,19 @@ class PatientRepository {
       patient,
       previousRoomNumber: previousRoom,
     );
+
+    if (FirebaseProjectConfig.shouldUseFirestorePatients) {
+      try {
+        if (previousRoom.isNotEmpty && previousRoom != patient.roomNumber) {
+          await FirebasePatientsService.instance.deletePatient(previousRoom);
+        }
+        await FirebasePatientsService.instance.upsertPatient(patient);
+        await PatientSyncService.instance.clearPendingChangesForPatient(
+          roomNumber: patient.roomNumber,
+          previousRoomNumber: previousRoom,
+        );
+      } catch (_) {}
+    }
   }
 
   Future<void> deletePatient(Patient patient) async {
@@ -142,6 +207,23 @@ class PatientRepository {
       taskCount: patient.medicationTasks.length,
     );
     await PatientSyncService.instance.enqueueDelete(patient);
+
+    if (FirebaseProjectConfig.shouldUseFirestorePatients) {
+      try {
+        await FirebasePatientsService.instance.deletePatient(patient.roomNumber);
+        await PatientSyncService.instance.clearPendingChangesForPatient(
+          roomNumber: patient.roomNumber,
+        );
+      } catch (_) {}
+    }
+
+    if (FirebaseProjectConfig.enabled) {
+      try {
+        await FirebasePatientCareService.instance.deletePatientCareData(
+          patient.roomNumber,
+        );
+      } catch (_) {}
+    }
   }
 
   Future<int> getPendingSyncCount() {
