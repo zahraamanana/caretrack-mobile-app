@@ -37,6 +37,29 @@ class FirebaseAuthService {
     );
   }
 
+  Future<AuthResult?> restoreSession() async {
+    if (!FirebaseProjectConfig.shouldUseFirebaseAuth) {
+      return null;
+    }
+
+    final currentUser = _firebaseAuth.currentUser;
+    if (currentUser == null) {
+      return null;
+    }
+
+    await currentUser.reload();
+    final refreshedUser = _firebaseAuth.currentUser;
+    if (refreshedUser == null) {
+      return null;
+    }
+
+    return _authResultFromUser(
+      refreshedUser,
+      fallbackName: refreshedUser.email ?? 'Firebase User',
+      message: 'Restored Firebase session.',
+    );
+  }
+
   Future<AuthResult> signUp({
     required String fullName,
     required String email,
@@ -60,17 +83,26 @@ class FirebaseAuthService {
     }
 
     final trimmedName = fullName.trim();
-    if (trimmedName.isNotEmpty) {
-      await user.updateDisplayName(trimmedName);
-    }
+    try {
+      if (trimmedName.isNotEmpty) {
+        await user.updateDisplayName(trimmedName);
+      }
 
-    await _firestoreService.nurseUsers.doc(user.uid).set({
-      'uid': user.uid,
-      'name': trimmedName,
-      'email': user.email,
-      'role': 'nurse',
-      'createdAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+      await _firestoreService.nurseUsers.doc(user.uid).set({
+        'uid': user.uid,
+        'name': trimmedName,
+        'email': user.email,
+        'role': 'nurse',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {
+      try {
+        await user.delete();
+      } catch (_) {
+        await _firebaseAuth.signOut();
+      }
+      rethrow;
+    }
 
     await user.reload();
     final refreshedUser = _firebaseAuth.currentUser ?? user;

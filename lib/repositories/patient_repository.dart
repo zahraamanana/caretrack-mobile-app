@@ -69,7 +69,17 @@ class PatientRepository {
         await PatientSyncService.instance.removePendingChange(entry.queueKey);
       }
 
-      final remotePatients = await FirebasePatientsService.instance.fetchPatients();
+      var remotePatients = await FirebasePatientsService.instance.fetchPatients();
+      if (remotePatients.isEmpty) {
+        final localPatients = await _readPatientsFromLocal();
+        if (localPatients.isNotEmpty) {
+          for (final patient in localPatients) {
+            await FirebasePatientsService.instance.upsertPatient(patient);
+          }
+          remotePatients = await FirebasePatientsService.instance.fetchPatients();
+        }
+      }
+
       await savePatients(remotePatients);
       final syncedAt = DateTime.now();
       await PatientSyncService.instance.saveLastPatientsPullAt(syncedAt);
@@ -127,6 +137,10 @@ class PatientRepository {
   Future<void> savePatients(List<Patient> patients) async {
     await LocalDatabaseService.instance.initialize();
     final box = LocalDatabaseService.instance.patientsBox;
+
+    if (patients.isEmpty && box.isNotEmpty) {
+      return;
+    }
 
     await box.clear();
     for (final patient in patients) {

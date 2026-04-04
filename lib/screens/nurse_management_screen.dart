@@ -68,7 +68,18 @@ class _NurseManagementScreenState extends State<NurseManagementScreen> {
 
     if (shouldDelete != true) return;
 
-    await nurseProvider.deleteNurse(nurse.id);
+    try {
+      await nurseProvider.deleteNurse(nurse.id);
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.nurseDeleteFailed),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     if (!mounted) return;
 

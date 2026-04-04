@@ -461,6 +461,10 @@ class AppLocalizations {
   String deletedPatientMessage(String name) => isArabic
       ? 'تم حذف $name من اللائحة.'
       : '$name was deleted from the list.';
+
+  String get patientDeleteFailed => isArabic
+      ? 'تعذّر حذف المريض. جرّبي مرة ثانية.'
+      : 'Unable to delete the patient. Please try again.';
   String get deletePatient => isArabic ? 'حذف المريض' : 'Delete Patient';
   String deletePatientConfirmation(String name) => isArabic
       ? 'هل أنتِ متأكدة أنك تريدين حذف $name؟'
@@ -734,6 +738,10 @@ class AppLocalizations {
   String deletedNurseMessage(String name) => isArabic
       ? 'تم حذف $name من لائحة الممرضين.'
       : '$name was deleted from the nurse list.';
+
+  String get nurseDeleteFailed => isArabic
+      ? 'تعذّر حذف الممرض. جرّبي مرة ثانية.'
+      : 'Unable to delete the nurse. Please try again.';
 
   String nurseShiftLabel(String start, String end) {
     return isArabic ? 'الدوام: $start - $end' : 'Shift: $start - $end';

@@ -199,7 +199,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final l10n = AppLocalizations.of(context);
     final patientProvider = context.read<PatientProvider>();
 
-    await patientProvider.deletePatient(patient);
+    try {
+      await patientProvider.deletePatient(patient);
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.patientDeleteFailed),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     if (!mounted) return;
 
