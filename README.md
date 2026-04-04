@@ -1,17 +1,32 @@
-# uilayout
+# CareTrack
 
-A new Flutter project.
+CareTrack is a Flutter mobile application developed to help nurses manage patient care tasks in a simple, organized, and practical way.
 
-## Getting Started
+## Main Features
+- Nurse login and account creation
+- Patient dashboard and patient details
+- Medication task management
+- Vital signs monitoring
+- Admin dashboard
+- Nurse management
+- Offline local storage
+- Firebase Authentication and Cloud Firestore sync
+- Notifications and reminders
+- Arabic and English support
 
-This project is a starting point for a Flutter application.
+## Technologies Used
+- Flutter
+- Firebase Authentication
+- Cloud Firestore
+- Hive
+- Provider
+- Flutter Local Notifications
 
-A few resources to get you started if this is your first Flutter project:
+## Project Goal
+CareTrack was built to improve nursing workflow, support patient follow-up, and reduce the risk of missing important care tasks in healthcare environments.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Author
+Zahraa  
+Mobile Developer Intern  
+XpertNurse
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
