@@ -12,7 +12,7 @@ import 'services/firebase_bootstrap_service.dart';
 import 'services/local_database_service.dart';
 import 'services/notification_service.dart';
 import 'utils/app_colors.dart';
-import 'widgets/auth_gate.dart';
+import 'widgets/app_launch_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,7 +77,7 @@ class CareTrackApp extends StatelessWidget {
                 ),
               ),
             ),
-            home: const AuthGate(),
+            home: const AppLaunchScreen(),
           );
         },
       ),

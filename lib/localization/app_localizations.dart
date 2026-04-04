@@ -379,7 +379,7 @@ class AppLocalizations {
       : '$count local changes are pending. Online fetch was paused to protect your updates.';
   String get lastSyncNever => isArabic
       ? 'لم يتم إجراء مزامنة أونلاين بعد.'
-      : 'No online sync yet.';
+      : 'No manual sync yet.';
   String lastSyncLabel(String value) => isArabic
       ? 'آخر مزامنة: $value'
       : 'Last sync: $value';
