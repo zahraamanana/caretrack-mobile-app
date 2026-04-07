@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../screens/login_screen.dart';
 import '../screens/patient_dashboard.dart';
+import '../utils/app_colors.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -30,13 +31,13 @@ class _AuthLoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(
-              color: Color.fromARGB(255, 110, 101, 168),
+              color: AppColors.secondary,
             ),
             SizedBox(height: 16),
             Text(
@@ -44,7 +45,7 @@ class _AuthLoadingScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color.fromARGB(255, 37, 101, 146),
+                color: AppColors.primary,
               ),
             ),
           ],

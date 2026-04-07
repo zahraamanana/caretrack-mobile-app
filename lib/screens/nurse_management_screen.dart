@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../localization/app_localizations.dart';
 import '../models/nurse.dart';
 import '../providers/nurse_provider.dart';
+import '../services/logger_service.dart';
+import '../utils/app_colors.dart';
 import '../widgets/language_selector_button.dart';
 
 class NurseManagementScreen extends StatefulWidget {
@@ -70,7 +72,12 @@ class _NurseManagementScreenState extends State<NurseManagementScreen> {
 
     try {
       await nurseProvider.deleteNurse(nurse.id);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to delete nurse ${nurse.id} from management screen.',
+        error,
+        stackTrace,
+      );
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
@@ -95,8 +102,8 @@ class _NurseManagementScreenState extends State<NurseManagementScreen> {
   Widget build(BuildContext context) {
     final nurseProvider = context.watch<NurseProvider>();
     final l10n = AppLocalizations.of(context);
-    const primaryColor = Color.fromARGB(255, 110, 101, 168);
-    const accentColor = Color.fromARGB(255, 37, 101, 146);
+    const primaryColor = AppColors.secondary;
+    const accentColor = AppColors.primary;
     final nurses = nurseProvider.nurses;
 
     return Scaffold(
@@ -432,7 +439,8 @@ class _AddNurseSheetState extends State<_AddNurseSheet> {
       } else {
         await nurseProvider.addNurse(nurse);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Failed to save nurse form changes.', error, stackTrace);
       if (!mounted) return;
       setState(() {
         _isSaving = false;
@@ -448,7 +456,7 @@ class _AddNurseSheetState extends State<_AddNurseSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    const primaryColor = Color.fromARGB(255, 110, 101, 168);
+    const primaryColor = AppColors.secondary;
 
     return Padding(
       padding: EdgeInsets.only(

@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import '../services/app_language_service.dart';
 import '../services/patient_translation_service.dart';
 
+/// Temporary map-based localization.
+///
+/// This keeps the current bilingual behavior stable while leaving a clear path
+/// for a future migration to `intl` + `.arb` files without changing app
+/// behavior today.
 class AppLocalizations {
   AppLocalizations(this._languageCode);
 
@@ -363,7 +368,7 @@ class AppLocalizations {
       ? 'التطبيق يعتمد حاليًا على البيانات المحلية.'
       : 'The app is currently using local data.';
   String get syncingPatients => isArabic
-      ? 'Ø¬Ø§Ø±Ù Ù…Ø²Ø§Ù…Ù†Ø© Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø±Ø¶Ù‰...'
+      ? 'جارٍ مزامنة بيانات المرضى...'
       : 'Syncing patient data...';
   String pendingSyncChanges(int count) => isArabic
       ? 'يوجد $count تغييرات محلية بانتظار المزامنة.'
@@ -667,19 +672,19 @@ class AppLocalizations {
       : 'Add nurses, edit shifts, and monitor coverage by floor and department.';
 
   String get adminPatientSearchHint => isArabic
-      ? 'Ø§Ø¨Ø­Ø«ÙŠ Ø¨Ø§Ø³Ù… Ø§Ù„Ù…Ø±ÙŠØ¶ Ø£Ùˆ Ø§Ù„ØºØ±ÙØ© Ø£Ùˆ Ø§Ù„Ø·Ø¨ÙŠØ¨'
+      ? 'ابحثي باسم المريض أو الغرفة أو الطبيب'
       : 'Search by patient, room, doctor, department, or floor';
 
   String get nurseSearchHint => isArabic
-      ? 'Ø§Ø¨Ø­Ø«ÙŠ Ø¨Ø§Ø³Ù… Ø§Ù„Ù…Ù…Ø±Ø¶ Ø£Ùˆ Ø§Ù„Ø·Ø§Ø¨Ù‚ Ø£Ùˆ Ø§Ù„Ù‚Ø³Ù…'
+      ? 'ابحثي باسم الممرض أو الطابق أو القسم'
       : 'Search by nurse, floor, department, or shift';
 
   String get noMatchingPatients => isArabic
-      ? 'Ù„Ù… Ù†Ø¬Ø¯ Ù…Ø±Ø¶Ù‰ Ù…Ø·Ø§Ø¨Ù‚ÙŠÙ† Ù„Ù„Ø¨Ø­Ø«.'
+      ? 'لم نجد مرضى مطابقين للبحث.'
       : 'No matching patients found.';
 
   String get noMatchingNurses => isArabic
-      ? 'Ù„Ù… Ù†Ø¬Ø¯ Ù…Ù…Ø±Ø¶ÙŠÙ† Ù…Ø·Ø§Ø¨Ù‚ÙŠÙ† Ù„Ù„Ø¨Ø­Ø«.'
+      ? 'لم نجد ممرضين مطابقين للبحث.'
       : 'No matching nurses found.';
 
   String nurseCountLabel(int count) => isArabic

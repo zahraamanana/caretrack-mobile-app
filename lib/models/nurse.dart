@@ -44,14 +44,46 @@ class Nurse {
     };
   }
 
+  Map<String, dynamic> toApiMap() {
+    return {
+      'id': id,
+      'name': name,
+      'floor': floor,
+      'department': department,
+      'shift_start': shiftStart,
+      'shift_end': shiftEnd,
+    };
+  }
+
   factory Nurse.fromMap(Map<dynamic, dynamic> map) {
     return Nurse(
-      id: map['id'] as String? ?? '',
-      name: map['name'] as String? ?? '',
-      floor: map['floor'] as String? ?? '',
-      department: map['department'] as String? ?? '',
-      shiftStart: map['shiftStart'] as String? ?? '',
-      shiftEnd: map['shiftEnd'] as String? ?? '',
+      id: _stringValue(map['id']),
+      name: _stringValue(map['name']),
+      floor: _stringValue(map['floor']),
+      department: _stringValue(map['department']),
+      shiftStart: _stringValue(map['shiftStart']),
+      shiftEnd: _stringValue(map['shiftEnd']),
     );
+  }
+
+  factory Nurse.fromApiMap(Map<String, dynamic> map) {
+    return Nurse(
+      id: _stringValue(map['id'] ?? map['uid'] ?? map['nurse_id']),
+      name: _stringValue(map['name'] ?? map['full_name']),
+      floor: _stringValue(map['floor']),
+      department: _stringValue(map['department']),
+      shiftStart: _stringValue(map['shiftStart'] ?? map['shift_start']),
+      shiftEnd: _stringValue(map['shiftEnd'] ?? map['shift_end']),
+    );
+  }
+
+  static String _stringValue(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is num) {
+      final asInt = value.toInt();
+      return value == asInt ? asInt.toString() : value.toString();
+    }
+    return value.toString();
   }
 }

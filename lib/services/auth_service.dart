@@ -1,18 +1,19 @@
 import '../config/api_config.dart';
 import '../config/firebase_project_config.dart';
 import '../models/auth_result.dart';
+import '../models/user_profile.dart';
 import 'api_service.dart';
 import 'firebase_auth_service.dart';
 
 class AuthService {
-  AuthService._({
+  AuthService({
     ApiService? apiService,
     FirebaseAuthService? firebaseAuthService,
   }) : _apiService = apiService ?? ApiService.instance,
        _firebaseAuthService =
            firebaseAuthService ?? FirebaseAuthService.instance;
 
-  static final AuthService instance = AuthService._();
+  static final AuthService instance = AuthService();
 
   final ApiService _apiService;
   final FirebaseAuthService _firebaseAuthService;
@@ -45,7 +46,6 @@ class AuthService {
       message: _messageFromResponse(response) ?? 'Login successful.',
       token: _tokenFromResponse(response),
       user: _userFromResponse(response),
-      isMock: false,
     );
   }
 
@@ -73,6 +73,17 @@ class AuthService {
     }
   }
 
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    if (FirebaseProjectConfig.shouldUseFirebaseAuth) {
+      await _firebaseAuthService.sendPasswordResetEmail(email: email);
+      return;
+    }
+
+    throw const ApiException(
+      'Password reset is only available when Firebase Auth is enabled.',
+    );
+  }
+
   Future<AuthResult> _mockSignIn({
     required String email,
     required String password,
@@ -86,10 +97,11 @@ class AuthService {
     return AuthResult(
       message: 'Signed in with demo auth mode.',
       token: 'mock-token',
-      user: {
-        'name': 'Demo Nurse',
-        'email': email.trim(),
-      },
+      user: UserProfile(
+        id: 'mock-nurse',
+        name: 'Demo Nurse',
+        email: email.trim(),
+      ),
       isMock: true,
     );
   }
@@ -109,15 +121,19 @@ class AuthService {
     return null;
   }
 
-  Map<String, dynamic>? _userFromResponse(Map<String, dynamic> response) {
+  UserProfile? _userFromResponse(Map<String, dynamic> response) {
     final directUser = response['user'];
-    if (directUser is Map<String, dynamic>) return directUser;
+    if (directUser is Map<String, dynamic>) return UserProfile.fromMap(directUser);
 
     final data = response['data'];
     if (data is Map<String, dynamic>) {
       final nestedUser = data['user'];
-      if (nestedUser is Map<String, dynamic>) return nestedUser;
-      return data;
+      if (nestedUser is Map<String, dynamic>) {
+        return UserProfile.fromMap(nestedUser);
+      }
+      if (data.containsKey('email') || data.containsKey('uid') || data.containsKey('id')) {
+        return UserProfile.fromMap(data);
+      }
     }
 
     return null;

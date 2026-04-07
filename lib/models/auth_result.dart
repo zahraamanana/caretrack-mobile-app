@@ -1,7 +1,9 @@
+import 'user_profile.dart';
+
 class AuthResult {
   final String message;
   final String? token;
-  final Map<String, dynamic>? user;
+  final UserProfile? user;
   final bool isMock;
 
   const AuthResult({

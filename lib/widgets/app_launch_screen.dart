@@ -51,16 +51,16 @@ class _SplashContent extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF8FAFF),
-              Colors.white,
-              Color(0xFFF4F6FA),
+              AppColors.splashTop,
+              AppColors.white,
+              AppColors.surface,
             ],
           ),
         ),

@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../localization/app_localizations.dart';
 import '../models/patient.dart';
-import '../models/patients_sync_result.dart';
 import '../providers/auth_provider.dart';
 import '../providers/patient_provider.dart';
+import '../services/logger_service.dart';
+import '../utils/app_colors.dart';
+import '../utils/patient_sync_feedback.dart';
 import '../widgets/language_selector_button.dart';
+import '../widgets/patient_card.dart';
 import 'admin_dashboard.dart';
 import 'patient_details_screen.dart';
 
@@ -21,66 +24,15 @@ class _PatientDashboardState extends State<PatientDashboard> {
   final TextEditingController _searchController = TextEditingController();
   String? _selectedFloor;
 
-  Future<void> _syncPatients() async {
-    final provider = context.read<PatientProvider>();
-    if (provider.isSyncing) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    final syncingLabel = l10n.isArabic ? 'Syncing...' : 'Syncing patient data...';
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(syncingLabel),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
+  Future<void> _syncPatients() {
+    return syncPatientsWithFeedback(
+      context: context,
+      patientProvider: context.read<PatientProvider>(),
     );
-
-    try {
-      final result = await provider.syncPatients();
-      if (!mounted) return;
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(_syncMessage(result, l10n)),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.syncUsingLocalData),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  String _syncMessage(PatientsSyncResult result, AppLocalizations l10n) {
-    switch (result.status) {
-      case PatientsSyncStatus.synced:
-        return l10n.syncCompletedMessage;
-      case PatientsSyncStatus.pendingLocalChanges:
-        return l10n.syncBlockedByPendingChanges(result.pendingChanges);
-      case PatientsSyncStatus.notConfigured:
-        return l10n.syncNotConfiguredMessage;
-    }
   }
 
   String _lastSyncText(AppLocalizations l10n, DateTime? lastPull) {
-    if (lastPull == null) {
-      return l10n.lastSyncNever;
-    }
-
-    final hour = lastPull.hour == 0
-        ? 12
-        : (lastPull.hour > 12 ? lastPull.hour - 12 : lastPull.hour);
-    final minute = lastPull.minute.toString().padLeft(2, '0');
-    final period = lastPull.hour >= 12 ? 'PM' : 'AM';
-    final formatted = '${lastPull.day}/${lastPull.month} - $hour:$minute $period';
-    return l10n.lastSyncLabel(formatted);
+    return lastPatientsSyncText(l10n, lastPull);
   }
 
   @override
@@ -93,7 +45,7 @@ class _PatientDashboardState extends State<PatientDashboard> {
   Widget build(BuildContext context) {
     final patientProvider = context.watch<PatientProvider>();
     final l10n = AppLocalizations.of(context);
-    const primaryColor = Color.fromARGB(255, 110, 101, 168);
+    const primaryColor = AppColors.secondary;
     final query = _searchController.text.trim().toLowerCase();
     final patients = patientProvider.patients;
     final availableFloors =
@@ -207,7 +159,7 @@ class _PatientDashboardState extends State<PatientDashboard> {
             const SizedBox(height: 20),
             Text(
               l10n.assignedPatients,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Color.fromARGB(255, 37, 101, 146),
@@ -235,7 +187,6 @@ class _PatientDashboardState extends State<PatientDashboard> {
                     department: patient.department,
                     floor: patient.floor,
                     status: patient.status,
-                    statusColor: patient.statusColor,
                     note: patient.note,
                     noteArabic: patient.noteArabic,
                     detail: patient.detail,
@@ -250,9 +201,15 @@ class _PatientDashboardState extends State<PatientDashboard> {
                         ),
                       );
                       if (!mounted) return;
-                      await patientProvider.loadPatients(
-                        showLoading: false,
-                      );
+                      try {
+                        await patientProvider.loadPatients(showLoading: false);
+                      } catch (error, stackTrace) {
+                        AppLogger.error(
+                          'Failed to refresh patients after returning from details.',
+                          error,
+                          stackTrace,
+                        );
+                      }
                     },
                   ),
                   const SizedBox(height: 12),
@@ -537,7 +494,7 @@ class _ShiftSummaryCard extends StatelessWidget {
         children: [
           Text(
             l10n.morningShiftOverview,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Color.fromARGB(255, 37, 101, 146),
@@ -714,7 +671,7 @@ class _QuickActionsSection extends StatelessWidget {
             color: Color.fromARGB(255, 37, 101, 146),
           ),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -781,220 +738,6 @@ class _QuickActionCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PatientMetaChip extends StatelessWidget {
-  final String label;
-
-  const _PatientMetaChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 13,
-          color: Color.fromARGB(255, 110, 101, 168),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-class PatientCard extends StatelessWidget {
-  final String firstLetter;
-  final String name;
-  final String roomNumber;
-  final String department;
-  final String floor;
-  final String status;
-  final Color statusColor;
-  final String note;
-  final String? noteArabic;
-  final String detail;
-  final String? detailArabic;
-  final VoidCallback onTap;
-
-  const PatientCard({
-    super.key,
-    required this.firstLetter,
-    required this.name,
-    required this.roomNumber,
-    required this.department,
-    required this.floor,
-    required this.status,
-    required this.statusColor,
-    required this.note,
-    this.noteArabic,
-    required this.detail,
-    this.detailArabic,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    const arrowBadge = _PatientArrowBadge();
-
-    return Material(
-      color: const Color(0xFFF5F7FB),
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18)),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: const Color(0xFFE8EEFF),
-                    child: Text(
-                      firstLetter,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color.fromARGB(255, 110, 101, 168),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _PatientMetaChip(label: l10n.roomLabel(roomNumber)),
-                            _PatientMetaChip(
-                              label: l10n.departmentFloorLabel(
-                                department,
-                                floor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  arrowBadge,
-                ],
-              ),
-              const SizedBox(height: 14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        l10n.statusLabel(status),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: statusColor,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        l10n.localizedPatientValue(
-                          englishValue: note,
-                          arabicValue: noteArabic,
-                        ),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w500,
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  l10n.localizedPatientValue(
-                    englishValue: detail,
-                    arabicValue: detailArabic,
-                  ),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black87,
-                    height: 1.35,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PatientArrowBadge extends StatelessWidget {
-  const _PatientArrowBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    final isArabic = AppLocalizations.of(context).isArabic;
-
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        isArabic ? Icons.arrow_back_ios_new_rounded : Icons.arrow_forward_ios,
-        size: 16,
-        color: Colors.grey,
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/patient.dart';
 import '../models/patients_sync_result.dart';
 import '../repositories/patient_repository.dart';
+import '../services/logger_service.dart';
 
 class PatientProvider extends ChangeNotifier {
   PatientProvider({PatientRepository? repository})
@@ -41,7 +42,8 @@ class PatientProvider extends ChangeNotifier {
       _pendingSyncCount = pendingSyncCount;
       _lastPatientsPullAt = lastPatientsPullAt;
       _loadError = null;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Failed to load patients in PatientProvider.', error, stackTrace);
       _loadError = 'load_failed';
     } finally {
       _isLoading = false;

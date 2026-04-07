@@ -1,16 +1,16 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/patients_sync_result.dart';
-import '../models/patient.dart';
+import '../localization/app_localizations.dart';
 import '../models/nurse.dart';
+import '../models/patient.dart';
 import '../providers/nurse_provider.dart';
 import '../providers/patient_provider.dart';
-import '../widgets/language_selector_button.dart';
-import '../localization/app_localizations.dart';
+import '../services/logger_service.dart';
 import '../services/patient_translation_service.dart';
+import '../utils/app_colors.dart';
+import '../utils/patient_sync_feedback.dart';
+import '../widgets/language_selector_button.dart';
 import 'nurse_management_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -24,8 +24,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
   final TextEditingController _patientSearchController =
       TextEditingController();
   final TextEditingController _nurseSearchController = TextEditingController();
-  Timer? _patientSearchDebounce;
-  Timer? _nurseSearchDebounce;
   String _patientQuery = '';
   String _nurseQuery = '';
 
@@ -39,52 +37,28 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   void dispose() {
-    _patientSearchDebounce?.cancel();
-    _nurseSearchDebounce?.cancel();
     _patientSearchController.dispose();
     _nurseSearchController.dispose();
     super.dispose();
   }
 
   void _onPatientSearchChanged(String value) {
-    _patientSearchDebounce?.cancel();
     final normalizedValue = value.trim().toLowerCase();
-
-    if (normalizedValue.isEmpty) {
-      if (_patientQuery.isNotEmpty) {
-        setState(() {
-          _patientQuery = '';
-        });
-      }
+    if (_patientQuery == normalizedValue) {
       return;
     }
-
-    _patientSearchDebounce = Timer(const Duration(milliseconds: 220), () {
-      if (!mounted || _patientQuery == normalizedValue) return;
-      setState(() {
-        _patientQuery = normalizedValue;
-      });
+    setState(() {
+      _patientQuery = normalizedValue;
     });
   }
 
   void _onNurseSearchChanged(String value) {
-    _nurseSearchDebounce?.cancel();
     final normalizedValue = value.trim().toLowerCase();
-
-    if (normalizedValue.isEmpty) {
-      if (_nurseQuery.isNotEmpty) {
-        setState(() {
-          _nurseQuery = '';
-        });
-      }
+    if (_nurseQuery == normalizedValue) {
       return;
     }
-
-    _nurseSearchDebounce = Timer(const Duration(milliseconds: 220), () {
-      if (!mounted || _nurseQuery == normalizedValue) return;
-      setState(() {
-        _nurseQuery = normalizedValue;
-      });
+    setState(() {
+      _nurseQuery = normalizedValue;
     });
   }
 
@@ -98,66 +72,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
     ]);
   }
 
-  Future<void> _syncPatients() async {
-    final patientProvider = context.read<PatientProvider>();
-    if (patientProvider.isSyncing) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    final syncingLabel = l10n.isArabic ? 'Syncing...' : 'Syncing patient data...';
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(syncingLabel),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
+  Future<void> _syncPatients() {
+    return syncPatientsWithFeedback(
+      context: context,
+      patientProvider: context.read<PatientProvider>(),
     );
-
-    try {
-      final result = await patientProvider.syncPatients();
-      if (!mounted) return;
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(_syncMessage(result, l10n)),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.syncUsingLocalData),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  String _syncMessage(PatientsSyncResult result, AppLocalizations l10n) {
-    switch (result.status) {
-      case PatientsSyncStatus.synced:
-        return l10n.syncCompletedMessage;
-      case PatientsSyncStatus.pendingLocalChanges:
-        return l10n.syncBlockedByPendingChanges(result.pendingChanges);
-      case PatientsSyncStatus.notConfigured:
-        return l10n.syncNotConfiguredMessage;
-    }
-  }
-
-  String _lastSyncText(AppLocalizations l10n, DateTime? lastPull) {
-    if (lastPull == null) {
-      return l10n.lastSyncNever;
-    }
-
-    final hour = lastPull.hour == 0
-        ? 12
-        : (lastPull.hour > 12 ? lastPull.hour - 12 : lastPull.hour);
-    final minute = lastPull.minute.toString().padLeft(2, '0');
-    final period = lastPull.hour >= 12 ? 'PM' : 'AM';
-    final formatted = '${lastPull.day}/${lastPull.month} - $hour:$minute $period';
-    return l10n.lastSyncLabel(formatted);
   }
 
   Future<void> _openPatientSheet({Patient? patient}) async {
@@ -201,7 +120,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
     try {
       await patientProvider.deletePatient(patient);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to delete patient ${patient.roomNumber} from admin dashboard.',
+        error,
+        stackTrace,
+      );
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
@@ -252,13 +176,67 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
+  Iterable<String> _queryVariants(String query) sync* {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) return;
+
+    final translator = PatientTranslationService.instance;
+    final variants = <String>{
+      normalized,
+      translator.toArabic(normalized).toLowerCase(),
+      translator.toEnglish(normalized).toLowerCase(),
+    };
+
+    for (final variant in variants) {
+      if (variant.trim().isNotEmpty) {
+        yield variant.trim();
+      }
+    }
+  }
+
+  String _patientSearchableText(Patient patient, AppLocalizations l10n) {
+    final translator = PatientTranslationService.instance;
+    return [
+      patient.name,
+      translator.toArabic(patient.name),
+      translator.toEnglish(patient.name),
+      patient.roomNumber,
+      patient.doctorName,
+      translator.toArabic(patient.doctorName),
+      translator.toEnglish(patient.doctorName),
+      patient.department,
+      translator.toArabic(patient.department),
+      translator.toEnglish(patient.department),
+      patient.floor,
+      l10n.departmentLabel(patient.department),
+      l10n.floorLabel(patient.floor),
+    ].join(' ').toLowerCase();
+  }
+
+  String _nurseSearchableText(Nurse nurse, AppLocalizations l10n) {
+    final translator = PatientTranslationService.instance;
+    return [
+      nurse.name,
+      translator.toArabic(nurse.name),
+      translator.toEnglish(nurse.name),
+      nurse.department,
+      translator.toArabic(nurse.department),
+      translator.toEnglish(nurse.department),
+      nurse.floor,
+      nurse.shiftStart,
+      nurse.shiftEnd,
+      l10n.departmentLabel(nurse.department),
+      l10n.floorLabel(nurse.floor),
+    ].join(' ').toLowerCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     final patientProvider = context.watch<PatientProvider>();
     final nurseProvider = context.watch<NurseProvider>();
     final l10n = AppLocalizations.of(context);
-    const primaryColor = Color.fromARGB(255, 110, 101, 168);
-    const accentColor = Color.fromARGB(255, 37, 101, 146);
+    const primaryColor = AppColors.secondary;
+    const accentColor = AppColors.primary;
     final patients = patientProvider.patients;
     final nurseAssignments = nurseProvider.nurses;
     final totalAlerts = patients.where((patient) => patient.hasAlert).length;
@@ -267,35 +245,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final under20Count = patients.where((patient) => patient.age < 20).length;
     final departmentStats = _buildDepartmentStats(patients);
     final floorStats = _buildFloorStats(patients, nurseAssignments);
+    final patientQueryVariants = _queryVariants(_patientQuery).toList();
+    final nurseQueryVariants = _queryVariants(_nurseQuery).toList();
     final filteredPatients = patients.where((patient) {
-      if (_patientQuery.isEmpty) return true;
-
-      final searchable = [
-        patient.name,
-        patient.roomNumber,
-        patient.doctorName,
-        patient.department,
-        patient.floor,
-        l10n.departmentLabel(patient.department),
-        l10n.floorLabel(patient.floor),
-      ].join(' ').toLowerCase();
-
-      return searchable.contains(_patientQuery);
+      if (patientQueryVariants.isEmpty) return true;
+      final searchable = _patientSearchableText(patient, l10n);
+      return patientQueryVariants.any(searchable.contains);
     }).toList();
     final filteredNurses = nurseAssignments.where((nurse) {
-      if (_nurseQuery.isEmpty) return true;
-
-      final searchable = [
-        nurse.name,
-        nurse.department,
-        nurse.floor,
-        nurse.shiftStart,
-        nurse.shiftEnd,
-        l10n.departmentLabel(nurse.department),
-        l10n.floorLabel(nurse.floor),
-      ].join(' ').toLowerCase();
-
-      return searchable.contains(_nurseQuery);
+      if (nurseQueryVariants.isEmpty) return true;
+      final searchable = _nurseSearchableText(nurse, l10n);
+      return nurseQueryVariants.any(searchable.contains);
     }).toList();
     final topDepartmentLabel = departmentStats.isEmpty
         ? l10n.noDepartment
@@ -380,7 +340,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           const SizedBox(height: 16),
           _AdminSyncStatusCard(
             pendingSyncCount: patientProvider.pendingSyncCount,
-            summaryText: _lastSyncText(
+            summaryText: lastPatientsSyncText(
               l10n,
               patientProvider.lastPatientsPullAt,
             ),
@@ -952,9 +912,13 @@ class _AdminSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = AppLocalizations.of(context).isArabic;
+
     return TextField(
       controller: controller,
       onChanged: onChanged,
+      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       decoration: InputDecoration(
         hintText: hintText,
         prefixIcon: const Icon(Icons.search),
@@ -1282,6 +1246,21 @@ class _AddPatientSheetState extends State<_AddPatientSheet> {
         ? 'P'
         : name.substring(0, 1).toUpperCase();
 
+    final roomAlreadyTaken = patientProvider.patients.any((patient) {
+      if (_isEditing && patient.roomNumber == existingPatient?.roomNumber) {
+        return false;
+      }
+      return patient.roomNumber.trim() == room;
+    });
+
+    if (roomAlreadyTaken) {
+      setState(() {
+        _isSaving = false;
+        _saveError = l10n.roomAlreadyExists;
+      });
+      return;
+    }
+
     if (isArabic) {
       diagnosisArabic = diagnosisInput;
       diagnosis = translator.toEnglish(diagnosisArabic);
@@ -1314,7 +1293,6 @@ class _AddPatientSheetState extends State<_AddPatientSheet> {
       diagnosis: diagnosis,
       diagnosisArabic: diagnosisArabic,
       status: _selectedStatus,
-      statusColor: _statusColor(_selectedStatus),
       note: note,
       noteArabic: noteArabic,
       detail: detail,
@@ -1348,7 +1326,12 @@ class _AddPatientSheetState extends State<_AddPatientSheet> {
         _saveError = l10n.roomAlreadyExists;
       });
       return;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to save patient from admin dashboard form.',
+        error,
+        stackTrace,
+      );
       if (!mounted) return;
       setState(() {
         _isSaving = false;
@@ -1361,21 +1344,10 @@ class _AddPatientSheetState extends State<_AddPatientSheet> {
     navigator.pop(true);
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'Critical':
-        return Colors.red;
-      case 'Observation':
-        return Colors.orange;
-      default:
-        return Colors.green;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    const primaryColor = Color.fromARGB(255, 110, 101, 168);
+    const primaryColor = AppColors.secondary;
 
     return Padding(
       padding: EdgeInsets.only(

@@ -1,4 +1,28 @@
-import 'package:flutter/material.dart';
+String _mapStringValue(dynamic value) {
+  if (value == null) return '';
+  if (value is String) return value;
+  if (value is num) {
+    final asInt = value.toInt();
+    return value == asInt ? asInt.toString() : value.toString();
+  }
+  return value.toString();
+}
+
+String? _mapNullableStringValue(dynamic value) {
+  final normalized = _mapStringValue(value).trim();
+  return normalized.isEmpty ? null : normalized;
+}
+
+bool _mapBoolValue(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized == 'true' || normalized == '1') return true;
+    if (normalized == 'false' || normalized == '0') return false;
+  }
+  return false;
+}
 
 class MedicationTask {
   final String title;
@@ -25,16 +49,15 @@ class MedicationTask {
 
   factory MedicationTask.fromMap(Map<dynamic, dynamic> map) {
     return MedicationTask(
-      title: map['title'] as String? ?? '',
-      dueTime: map['dueTime'] as String? ?? '',
+      title: _mapStringValue(map['title']),
+      dueTime: _mapStringValue(map['dueTime']),
     );
   }
 
   factory MedicationTask.fromApiMap(Map<String, dynamic> map) {
     return MedicationTask(
-      title: (map['title'] ?? map['name'] ?? map['task']) as String? ?? '',
-      dueTime:
-          (map['dueTime'] ?? map['due_time'] ?? map['time']) as String? ?? '',
+      title: _mapStringValue(map['title'] ?? map['name'] ?? map['task']),
+      dueTime: _mapStringValue(map['dueTime'] ?? map['due_time'] ?? map['time']),
     );
   }
 }
@@ -50,7 +73,6 @@ class Patient {
   final String diagnosis;
   final String? diagnosisArabic;
   final String status;
-  final Color statusColor;
   final String note;
   final String? noteArabic;
   final String detail;
@@ -73,7 +95,6 @@ class Patient {
     required this.diagnosis,
     this.diagnosisArabic,
     required this.status,
-    required this.statusColor,
     required this.note,
     this.noteArabic,
     required this.detail,
@@ -97,7 +118,6 @@ class Patient {
     String? diagnosis,
     String? diagnosisArabic,
     String? status,
-    Color? statusColor,
     String? note,
     String? noteArabic,
     String? detail,
@@ -120,7 +140,6 @@ class Patient {
       diagnosis: diagnosis ?? this.diagnosis,
       diagnosisArabic: diagnosisArabic ?? this.diagnosisArabic,
       status: status ?? this.status,
-      statusColor: statusColor ?? this.statusColor,
       note: note ?? this.note,
       noteArabic: noteArabic ?? this.noteArabic,
       detail: detail ?? this.detail,
@@ -146,7 +165,6 @@ class Patient {
       'diagnosis': diagnosis,
       'diagnosisArabic': diagnosisArabic,
       'status': status,
-      'statusColor': statusColor.toARGB32(),
       'note': note,
       'noteArabic': noteArabic,
       'detail': detail,
@@ -187,32 +205,31 @@ class Patient {
 
   factory Patient.fromMap(Map<dynamic, dynamic> map) {
     final tasks = (map['medicationTasks'] as List<dynamic>? ?? const [])
-        .whereType<Map<dynamic, dynamic>>()
-        .map(MedicationTask.fromMap)
+        .whereType<Map>()
+        .map((item) => MedicationTask.fromMap(Map<dynamic, dynamic>.from(item)))
         .toList();
 
     return Patient(
-      firstLetter: map['firstLetter'] as String? ?? '',
-      name: map['name'] as String? ?? '',
+      firstLetter: _mapStringValue(map['firstLetter']),
+      name: _mapStringValue(map['name']),
       age: (map['age'] as num?)?.toInt() ?? 0,
-      roomNumber: map['roomNumber'] as String? ?? '',
-      doctorName: map['doctorName'] as String? ?? '',
-      department: map['department'] as String? ?? '',
-      floor: map['floor'] as String? ?? '',
-      diagnosis: map['diagnosis'] as String? ?? '',
-      diagnosisArabic: map['diagnosisArabic'] as String?,
-      status: map['status'] as String? ?? '',
-      statusColor: Color((map['statusColor'] as num?)?.toInt() ?? 0xFF9E9E9E),
-      note: map['note'] as String? ?? '',
-      noteArabic: map['noteArabic'] as String?,
-      detail: map['detail'] as String? ?? '',
-      detailArabic: map['detailArabic'] as String?,
-      medicationInfo: map['medicationInfo'] as String? ?? '',
-      medicationInfoArabic: map['medicationInfoArabic'] as String?,
+      roomNumber: _mapStringValue(map['roomNumber']),
+      doctorName: _mapStringValue(map['doctorName']),
+      department: _mapStringValue(map['department']),
+      floor: _mapStringValue(map['floor']),
+      diagnosis: _mapStringValue(map['diagnosis']),
+      diagnosisArabic: _mapNullableStringValue(map['diagnosisArabic']),
+      status: _mapStringValue(map['status']),
+      note: _mapStringValue(map['note']),
+      noteArabic: _mapNullableStringValue(map['noteArabic']),
+      detail: _mapStringValue(map['detail']),
+      detailArabic: _mapNullableStringValue(map['detailArabic']),
+      medicationInfo: _mapStringValue(map['medicationInfo']),
+      medicationInfoArabic: _mapNullableStringValue(map['medicationInfoArabic']),
       medicationTasks: tasks,
-      vitalSigns: map['vitalSigns'] as String? ?? '',
-      hasAlert: map['hasAlert'] as bool? ?? false,
-      hasMedicationRound: map['hasMedicationRound'] as bool? ?? false,
+      vitalSigns: _mapStringValue(map['vitalSigns']),
+      hasAlert: _mapBoolValue(map['hasAlert']),
+      hasMedicationRound: _mapBoolValue(map['hasMedicationRound']),
     );
   }
 
@@ -265,7 +282,6 @@ class Patient {
         const ['diagnosisArabic', 'diagnosis_ar'],
       ),
       status: status.isEmpty ? 'Stable' : status,
-      statusColor: _statusColorFor(status),
       note: note.isEmpty ? 'Next assessment pending' : note,
       noteArabic: _nullableStringFromApi(
         map,
@@ -361,16 +377,5 @@ class Patient {
       }
     }
     return false;
-  }
-
-  static Color _statusColorFor(String status) {
-    switch (status.trim().toLowerCase()) {
-      case 'critical':
-        return Colors.red;
-      case 'observation':
-        return Colors.orange;
-      default:
-        return Colors.green;
-    }
   }
 }

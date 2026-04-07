@@ -1,31 +1,43 @@
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/auth_result.dart';
 import '../models/auth_session.dart';
+import 'logger_service.dart';
 
 class AuthSessionService {
-  AuthSessionService._();
+  AuthSessionService({
+    FlutterSecureStorage? secureStorage,
+    Future<SharedPreferences> Function()? preferencesLoader,
+  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+       _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance;
 
-  static final AuthSessionService instance = AuthSessionService._();
+  static final AuthSessionService instance = AuthSessionService();
 
   static const String _sessionKey = 'auth_session';
+  final FlutterSecureStorage _secureStorage;
+  final Future<SharedPreferences> Function() _preferencesLoader;
 
   Future<AuthSession?> loadSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final rawSession = prefs.getString(_sessionKey);
+    final rawSession = await _readMigratedSession();
     if (rawSession == null || rawSession.trim().isEmpty) {
       return null;
     }
 
     try {
       final decoded = jsonDecode(rawSession);
-      if (decoded is! Map) return null;
-      final session = AuthSession.fromMap(Map<String, dynamic>.from(decoded));
-      if (session.token.trim().isEmpty) return null;
+      if (decoded is! Map<String, dynamic>) {
+        return null;
+      }
+      final session = AuthSession.fromMap(decoded);
+      if (session.token.trim().isEmpty) {
+        return null;
+      }
       return session;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Failed to decode saved auth session.', error, stackTrace);
       return null;
     }
   }
@@ -46,13 +58,33 @@ class AuthSessionService {
       isMock: result.isMock,
     );
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_sessionKey, jsonEncode(session.toMap()));
+    await _secureStorage.write(
+      key: _sessionKey,
+      value: jsonEncode(session.toMap()),
+    );
     return session;
   }
 
   Future<void> clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
+    await _secureStorage.delete(key: _sessionKey);
+    final prefs = await _preferencesLoader();
     await prefs.remove(_sessionKey);
+  }
+
+  Future<String?> _readMigratedSession() async {
+    final secureValue = await _secureStorage.read(key: _sessionKey);
+    if (secureValue != null && secureValue.trim().isNotEmpty) {
+      return secureValue;
+    }
+
+    final prefs = await _preferencesLoader();
+    final legacyValue = prefs.getString(_sessionKey);
+    if (legacyValue == null || legacyValue.trim().isEmpty) {
+      return null;
+    }
+
+    await _secureStorage.write(key: _sessionKey, value: legacyValue);
+    await prefs.remove(_sessionKey);
+    return legacyValue;
   }
 }

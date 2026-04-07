@@ -4,18 +4,23 @@ import '../config/firebase_project_config.dart';
 import '../models/auth_result.dart';
 import '../models/auth_session.dart';
 import '../services/auth_service.dart';
-import '../services/firebase_auth_service.dart';
 import '../services/auth_session_service.dart';
+import '../services/firebase_auth_service.dart';
+import '../services/logger_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider({
     AuthService? authService,
     AuthSessionService? sessionService,
+    FirebaseAuthService? firebaseAuthService,
   }) : _authService = authService ?? AuthService.instance,
-       _sessionService = sessionService ?? AuthSessionService.instance;
+       _sessionService = sessionService ?? AuthSessionService.instance,
+       _firebaseAuthService =
+           firebaseAuthService ?? FirebaseAuthService.instance;
 
   final AuthService _authService;
   final AuthSessionService _sessionService;
+  final FirebaseAuthService _firebaseAuthService;
 
   AuthSession? _session;
   bool _isInitializing = true;
@@ -29,7 +34,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> initialize() async {
     try {
       if (FirebaseProjectConfig.shouldUseFirebaseAuth) {
-        final restored = await FirebaseAuthService.instance.restoreSession();
+        final restored = await _firebaseAuthService.restoreSession();
         if (restored != null) {
           _session = await _sessionService.saveSession(restored);
         } else {
@@ -39,7 +44,8 @@ class AuthProvider extends ChangeNotifier {
       } else {
         _session = await _sessionService.loadSession();
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Failed to initialize auth session.', error, stackTrace);
       await _sessionService.clearSession();
       _session = null;
     } finally {
@@ -97,5 +103,9 @@ class AuthProvider extends ChangeNotifier {
     await _sessionService.clearSession();
     _session = null;
     notifyListeners();
+  }
+
+  Future<void> sendPasswordResetEmail({required String email}) {
+    return _authService.sendPasswordResetEmail(email: email);
   }
 }

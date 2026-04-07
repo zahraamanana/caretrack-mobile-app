@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/nurse.dart';
 import '../repositories/nurse_repository.dart';
+import '../services/logger_service.dart';
 
 class NurseProvider extends ChangeNotifier {
   NurseProvider({NurseRepository? repository})
@@ -28,7 +29,8 @@ class NurseProvider extends ChangeNotifier {
     try {
       _nurses = await _repository.getNurses();
       _loadError = null;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Failed to load nurses in NurseProvider.', error, stackTrace);
       _loadError = 'load_failed';
     } finally {
       _isLoading = false;

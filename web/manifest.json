@@ -1,11 +1,11 @@
 {
-    "name": "uilayout",
-    "short_name": "uilayout",
+    "name": "CareTrack",
+    "short_name": "CareTrack",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "CareTrack is an offline-first nursing assistant app for patient workflow, reminders, and Firebase sync.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

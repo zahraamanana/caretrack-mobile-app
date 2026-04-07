@@ -1,5 +1,5 @@
-import 'patient.dart';
 import '../services/patient_sync_service.dart';
+import 'patient.dart';
 
 class PatientSyncEntry {
   final String queueKey;
@@ -22,7 +22,10 @@ class PatientSyncEntry {
     String queueKey,
     Map<dynamic, dynamic> map,
   ) {
-    final actionName = map['action'] as String? ?? PatientSyncAction.update.name;
+    final actionName =
+        _stringValue(map['action']) == ''
+            ? PatientSyncAction.update.name
+            : _stringValue(map['action']);
     final payload = map['payload'];
     PatientSyncAction action = PatientSyncAction.update;
 
@@ -36,10 +39,25 @@ class PatientSyncEntry {
     return PatientSyncEntry(
       queueKey: queueKey,
       action: action,
-      roomNumber: map['roomNumber'] as String? ?? '',
-      previousRoomNumber: map['previousRoomNumber'] as String?,
+      roomNumber: _stringValue(map['roomNumber']),
+      previousRoomNumber: _nullableStringValue(map['previousRoomNumber']),
       patient: payload is Map<dynamic, dynamic> ? Patient.fromMap(payload) : null,
-      createdAt: DateTime.tryParse(map['createdAt'] as String? ?? ''),
+      createdAt: DateTime.tryParse(_stringValue(map['createdAt'])),
     );
+  }
+
+  static String _stringValue(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is num) {
+      final asInt = value.toInt();
+      return value == asInt ? asInt.toString() : value.toString();
+    }
+    return value.toString();
+  }
+
+  static String? _nullableStringValue(dynamic value) {
+    final normalized = _stringValue(value).trim();
+    return normalized.isEmpty ? null : normalized;
   }
 }

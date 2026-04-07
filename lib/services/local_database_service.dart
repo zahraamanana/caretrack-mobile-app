@@ -1,10 +1,21 @@
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class LocalDatabaseService {
-  LocalDatabaseService._();
+typedef SharedPreferencesLoader = Future<SharedPreferences> Function();
+typedef HiveInitializer = Future<void> Function(HiveInterface hive);
 
-  static final LocalDatabaseService instance = LocalDatabaseService._();
+class LocalDatabaseService {
+  LocalDatabaseService({
+    HiveInterface? hive,
+    SharedPreferencesLoader? sharedPreferencesLoader,
+    HiveInitializer? hiveInitializer,
+  }) : _hive = hive ?? Hive,
+       _sharedPreferencesLoader =
+           sharedPreferencesLoader ?? SharedPreferences.getInstance,
+       _hiveInitializer =
+           hiveInitializer ?? ((hive) => Hive.initFlutter());
+
+  static final LocalDatabaseService instance = LocalDatabaseService();
 
   static const String _vitalSignsBoxName = 'patient_vital_signs';
   static const String _taskCompletionBoxName = 'patient_task_completion';
@@ -13,6 +24,9 @@ class LocalDatabaseService {
   static const String _patientSyncQueueBoxName = 'patient_sync_queue';
   static const String _syncMetadataBoxName = 'sync_metadata';
   static const String _migrationFlagKey = 'patient_storage_hive_migrated';
+  final HiveInterface _hive;
+  final SharedPreferencesLoader _sharedPreferencesLoader;
+  final HiveInitializer _hiveInitializer;
 
   late final Box<String> _vitalSignsBox;
   late final Box<List<dynamic>> _taskCompletionBox;
@@ -32,24 +46,24 @@ class LocalDatabaseService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    await Hive.initFlutter();
-    _vitalSignsBox = await Hive.openBox<String>(_vitalSignsBoxName);
-    _taskCompletionBox = await Hive.openBox<List<dynamic>>(
+    await _hiveInitializer(_hive);
+    _vitalSignsBox = await _hive.openBox<String>(_vitalSignsBoxName);
+    _taskCompletionBox = await _hive.openBox<List<dynamic>>(
       _taskCompletionBoxName,
     );
-    _patientsBox = await Hive.openBox<Map<dynamic, dynamic>>(_patientsBoxName);
-    _nursesBox = await Hive.openBox<Map<dynamic, dynamic>>(_nursesBoxName);
-    _patientSyncQueueBox = await Hive.openBox<Map<dynamic, dynamic>>(
+    _patientsBox = await _hive.openBox<Map<dynamic, dynamic>>(_patientsBoxName);
+    _nursesBox = await _hive.openBox<Map<dynamic, dynamic>>(_nursesBoxName);
+    _patientSyncQueueBox = await _hive.openBox<Map<dynamic, dynamic>>(
       _patientSyncQueueBoxName,
     );
-    _syncMetadataBox = await Hive.openBox<String>(_syncMetadataBoxName);
+    _syncMetadataBox = await _hive.openBox<String>(_syncMetadataBoxName);
 
     await _migrateSharedPreferencesData();
     _isInitialized = true;
   }
 
   Future<void> _migrateSharedPreferencesData() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPreferencesLoader();
     if (prefs.getBool(_migrationFlagKey) ?? false) return;
 
     for (final key in prefs.getKeys()) {

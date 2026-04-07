@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import '../config/firebase_project_config.dart';
 import '../data/mock_nurses.dart';
 import '../models/nurse.dart';
 import '../services/firebase_nurses_service.dart';
 import '../services/local_database_service.dart';
+import '../services/logger_service.dart';
 
 class NurseRepository {
   NurseRepository._();
@@ -47,6 +50,11 @@ class NurseRepository {
       return localNurses;
     }
 
+    if (localNurses.isNotEmpty) {
+      unawaited(_refreshLocalNursesFromRemote(localNurses));
+      return localNurses;
+    }
+
     try {
       final remoteNurses = await FirebaseNursesService.instance.fetchNurses();
       if (remoteNurses.isEmpty) {
@@ -65,7 +73,8 @@ class NurseRepository {
         await LocalDatabaseService.instance.nursesBox.put(nurse.id, nurse.toMap());
       }
       return mergedNurses;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Failed to fetch nurses from Firestore; using local nurses.', error, stackTrace);
       return localNurses;
     }
   }
@@ -75,9 +84,7 @@ class NurseRepository {
     await LocalDatabaseService.instance.nursesBox.put(nurse.id, nurse.toMap());
 
     if (FirebaseProjectConfig.shouldUseFirestoreNurses) {
-      try {
-        await FirebaseNursesService.instance.upsertNurse(nurse);
-      } catch (_) {}
+      unawaited(_pushNurseUpsert(nurse));
     }
   }
 
@@ -86,9 +93,7 @@ class NurseRepository {
     await LocalDatabaseService.instance.nursesBox.put(nurse.id, nurse.toMap());
 
     if (FirebaseProjectConfig.shouldUseFirestoreNurses) {
-      try {
-        await FirebaseNursesService.instance.upsertNurse(nurse);
-      } catch (_) {}
+      unawaited(_pushNurseUpsert(nurse));
     }
   }
 
@@ -97,9 +102,47 @@ class NurseRepository {
     await LocalDatabaseService.instance.nursesBox.delete(nurseId);
 
     if (FirebaseProjectConfig.shouldUseFirestoreNurses) {
-      try {
-        await FirebaseNursesService.instance.deleteNurse(nurseId);
-      } catch (_) {}
+      unawaited(_pushNurseDelete(nurseId));
+    }
+  }
+
+  Future<void> _refreshLocalNursesFromRemote(List<Nurse> localNurses) async {
+    try {
+      final remoteNurses = await FirebaseNursesService.instance.fetchNurses();
+      if (remoteNurses.isEmpty) {
+        return;
+      }
+
+      final mergedById = <String, Nurse>{
+        for (final nurse in localNurses) nurse.id: nurse,
+        for (final nurse in remoteNurses) nurse.id: nurse,
+      };
+      final mergedNurses = mergedById.values.toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+
+      final box = LocalDatabaseService.instance.nursesBox;
+      await box.clear();
+      for (final nurse in mergedNurses) {
+        await box.put(nurse.id, nurse.toMap());
+      }
+    } catch (error, stackTrace) {
+      AppLogger.error('Failed to refresh local nurses from Firestore.', error, stackTrace);
+    }
+  }
+
+  Future<void> _pushNurseUpsert(Nurse nurse) async {
+    try {
+      await FirebaseNursesService.instance.upsertNurse(nurse);
+    } catch (error, stackTrace) {
+      AppLogger.error('Background Firestore upsert failed for nurse ${nurse.id}.', error, stackTrace);
+    }
+  }
+
+  Future<void> _pushNurseDelete(String nurseId) async {
+    try {
+      await FirebaseNursesService.instance.deleteNurse(nurseId);
+    } catch (error, stackTrace) {
+      AppLogger.error('Background Firestore delete failed for nurse $nurseId.', error, stackTrace);
     }
   }
 }

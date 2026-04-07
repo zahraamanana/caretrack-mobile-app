@@ -1,11 +1,12 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import 'auth_session_service.dart';
+import 'logger_service.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -230,7 +231,8 @@ class ApiService {
 
     try {
       return jsonDecode(body);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Failed to decode API response body as JSON.', error, stackTrace);
       return body;
     }
   }

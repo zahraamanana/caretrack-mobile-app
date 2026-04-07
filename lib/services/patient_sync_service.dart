@@ -1,15 +1,18 @@
-import '../models/patient_sync_entry.dart';
 import '../models/patient.dart';
+import '../models/patient_sync_entry.dart';
 import 'local_database_service.dart';
 
 enum PatientSyncAction { create, update, delete }
 
 class PatientSyncService {
-  PatientSyncService._();
+  PatientSyncService({LocalDatabaseService? localDatabaseService})
+    : _localDatabaseService =
+          localDatabaseService ?? LocalDatabaseService.instance;
 
-  static final PatientSyncService instance = PatientSyncService._();
+  static final PatientSyncService instance = PatientSyncService();
 
   static const String _lastPatientsPullAtKey = 'last_patients_pull_at';
+  final LocalDatabaseService _localDatabaseService;
 
   Future<void> enqueueCreate(Patient patient) async {
     await _saveChange(
@@ -30,15 +33,15 @@ class PatientSyncService {
   }
 
   Future<void> enqueueDelete(Patient patient) async {
-    await LocalDatabaseService.instance.initialize();
-    final box = LocalDatabaseService.instance.patientSyncQueueBox;
+    await _localDatabaseService.initialize();
+    final box = _localDatabaseService.patientSyncQueueBox;
     final existingKey = _findExistingKey(
       roomNumber: patient.roomNumber,
     );
 
     if (existingKey != null) {
       final existing = box.get(existingKey);
-      final existingActionName = existing?['action'] as String?;
+      final existingActionName = _nullableStringValue(existing?['action']);
       if (existingActionName == PatientSyncAction.create.name) {
         await box.delete(existingKey);
         return;
@@ -56,13 +59,13 @@ class PatientSyncService {
   }
 
   Future<int> getPendingChangesCount() async {
-    await LocalDatabaseService.instance.initialize();
-    return LocalDatabaseService.instance.patientSyncQueueBox.length;
+    await _localDatabaseService.initialize();
+    return _localDatabaseService.patientSyncQueueBox.length;
   }
 
   Future<List<PatientSyncEntry>> getPendingChanges() async {
-    await LocalDatabaseService.instance.initialize();
-    final box = LocalDatabaseService.instance.patientSyncQueueBox;
+    await _localDatabaseService.initialize();
+    final box = _localDatabaseService.patientSyncQueueBox;
 
     final entries = <PatientSyncEntry>[];
     for (final key in box.keys) {
@@ -81,24 +84,24 @@ class PatientSyncService {
   }
 
   Future<void> removePendingChange(String queueKey) async {
-    await LocalDatabaseService.instance.initialize();
-    await LocalDatabaseService.instance.patientSyncQueueBox.delete(queueKey);
+    await _localDatabaseService.initialize();
+    await _localDatabaseService.patientSyncQueueBox.delete(queueKey);
   }
 
   Future<void> clearPendingChangesForPatient({
     required String roomNumber,
     String? previousRoomNumber,
   }) async {
-    await LocalDatabaseService.instance.initialize();
-    final box = LocalDatabaseService.instance.patientSyncQueueBox;
+    await _localDatabaseService.initialize();
+    final box = _localDatabaseService.patientSyncQueueBox;
     final keysToDelete = <String>[];
 
     for (final key in box.keys) {
       final entry = box.get(key);
       if (entry == null) continue;
 
-      final queuedRoom = entry['roomNumber'] as String? ?? '';
-      final queuedPreviousRoom = entry['previousRoomNumber'] as String? ?? '';
+      final queuedRoom = _stringValue(entry['roomNumber']);
+      final queuedPreviousRoom = _stringValue(entry['previousRoomNumber']);
 
       final matchesCurrent = queuedRoom == roomNumber || queuedPreviousRoom == roomNumber;
       final matchesPrevious =
@@ -117,21 +120,22 @@ class PatientSyncService {
   }
 
   Future<DateTime?> getLastPatientsPullAt() async {
-    await LocalDatabaseService.instance.initialize();
-    final rawValue = LocalDatabaseService.instance.syncMetadataBox.get(
+    await _localDatabaseService.initialize();
+    final rawValue = _localDatabaseService.syncMetadataBox.get(
       _lastPatientsPullAtKey,
     );
 
-    if (rawValue == null || rawValue.trim().isEmpty) {
+    final normalized = _stringValue(rawValue).trim();
+    if (normalized.isEmpty) {
       return null;
     }
 
-    return DateTime.tryParse(rawValue);
+    return DateTime.tryParse(normalized);
   }
 
   Future<void> saveLastPatientsPullAt(DateTime value) async {
-    await LocalDatabaseService.instance.initialize();
-    await LocalDatabaseService.instance.syncMetadataBox.put(
+    await _localDatabaseService.initialize();
+    await _localDatabaseService.syncMetadataBox.put(
       _lastPatientsPullAtKey,
       value.toIso8601String(),
     );
@@ -141,14 +145,14 @@ class PatientSyncService {
     required String roomNumber,
     String? previousRoomNumber,
   }) {
-    final box = LocalDatabaseService.instance.patientSyncQueueBox;
+    final box = _localDatabaseService.patientSyncQueueBox;
 
     for (final key in box.keys) {
       final entry = box.get(key);
       if (entry == null) continue;
 
-      final queuedRoom = entry['roomNumber'] as String? ?? '';
-      final queuedPreviousRoom = entry['previousRoomNumber'] as String? ?? '';
+      final queuedRoom = _stringValue(entry['roomNumber']);
+      final queuedPreviousRoom = _stringValue(entry['previousRoomNumber']);
 
       if (queuedRoom == roomNumber ||
           queuedPreviousRoom == roomNumber ||
@@ -168,15 +172,15 @@ class PatientSyncService {
     required Patient patient,
     String? previousRoomNumber,
   }) async {
-    await LocalDatabaseService.instance.initialize();
-    final box = LocalDatabaseService.instance.patientSyncQueueBox;
+    await _localDatabaseService.initialize();
+    final box = _localDatabaseService.patientSyncQueueBox;
     final existingKey = _findExistingKey(
       roomNumber: patient.roomNumber,
       previousRoomNumber: previousRoomNumber,
     );
     final key = existingKey ?? _buildQueueKey(previousRoomNumber ?? patient.roomNumber);
     final existing = existingKey == null ? null : box.get(existingKey);
-    final existingActionName = existing?['action'] as String?;
+    final existingActionName = _nullableStringValue(existing?['action']);
     PatientSyncAction? existingAction;
     for (final value in PatientSyncAction.values) {
       if (value.name == existingActionName) {
@@ -200,5 +204,20 @@ class PatientSyncService {
 
   String _buildQueueKey(String roomNumber) {
     return 'patient_${roomNumber}_${DateTime.now().microsecondsSinceEpoch}';
+  }
+
+  String _stringValue(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is num) {
+      final asInt = value.toInt();
+      return value == asInt ? asInt.toString() : value.toString();
+    }
+    return value.toString();
+  }
+
+  String? _nullableStringValue(dynamic value) {
+    final normalized = _stringValue(value).trim();
+    return normalized.isEmpty ? null : normalized;
   }
 }

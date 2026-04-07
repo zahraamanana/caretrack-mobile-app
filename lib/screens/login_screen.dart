@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'
     show FirebaseAuthException;
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/api_config.dart';
@@ -8,6 +8,7 @@ import '../config/firebase_project_config.dart';
 import '../localization/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/logger_service.dart';
 import '../widgets/language_selector_button.dart';
 
 String _firebaseAuthErrorMessage(FirebaseAuthException error) {
@@ -98,7 +99,69 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _authError = _localizedAuthError(l10n, error.message);
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('Login failed with an unexpected error.', error, stackTrace);
+      if (!mounted) return;
+      setState(() {
+        _authError = _localizedAuthError(l10n, null);
+      });
+    }
+  }
+
+  Future<void> _sendPasswordReset() async {
+    final authProvider = context.read<AuthProvider>();
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      setState(() {
+        _authError = l10n.enterEmail;
+      });
+      return;
+    }
+
+    final isValidEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+    if (!isValidEmail) {
+      setState(() {
+        _authError = l10n.validEmail;
+      });
+      return;
+    }
+
+    setState(() {
+      _authError = null;
+    });
+
+    try {
+      await authProvider.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.isArabic
+                ? 'تم إرسال رابط إعادة تعيين كلمة المرور.'
+                : 'Password reset email sent.',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _authError = _firebaseAuthErrorMessage(error);
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _authError = _localizedAuthError(l10n, error.message);
+      });
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Password reset failed with an unexpected error.',
+        error,
+        stackTrace,
+      );
       if (!mounted) return;
       setState(() {
         _authError = _localizedAuthError(l10n, null);
@@ -301,7 +364,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: authProvider.isSubmitting ? null : () {},
+                          onPressed: authProvider.isSubmitting
+                              ? null
+                              : _sendPasswordReset,
                           child: Text(
                             l10n.forgotPassword,
                             style: const TextStyle(
@@ -455,7 +520,12 @@ class _CreateAccountSheetState extends State<_CreateAccountSheet> {
       setState(() {
         _authError = _localizedAuthError(l10n, error.message);
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Account creation failed with an unexpected error.',
+        error,
+        stackTrace,
+      );
       if (!mounted) return;
       setState(() {
         _authError = l10n.accountCreateFailed;

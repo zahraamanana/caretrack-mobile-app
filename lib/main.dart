@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -5,24 +7,42 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/nurse_provider.dart';
 import 'providers/patient_provider.dart';
-import 'repositories/patient_repository.dart';
 import 'repositories/nurse_repository.dart';
+import 'repositories/patient_repository.dart';
 import 'services/app_language_service.dart';
 import 'services/firebase_bootstrap_service.dart';
 import 'services/local_database_service.dart';
+import 'services/logger_service.dart';
 import 'services/notification_service.dart';
 import 'utils/app_colors.dart';
 import 'widgets/app_launch_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AppLanguageService.instance.loadSavedLanguage();
-  await FirebaseBootstrapService.instance.initialize();
-  await LocalDatabaseService.instance.initialize();
-  await PatientRepository.instance.seedPatientsIfNeeded();
-  await NurseRepository.instance.seedNursesIfNeeded();
-  await NotificationService.instance.initialize();
-  runApp(const CareTrackApp());
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    AppLogger.error(
+      'Unhandled Flutter framework error.',
+      details.exception,
+      details.stack,
+    );
+  };
+
+  await runZonedGuarded(() async {
+    await AppLanguageService.instance.loadSavedLanguage();
+    await Future.wait([
+      FirebaseBootstrapService.instance.initialize(),
+      LocalDatabaseService.instance.initialize(),
+      NotificationService.instance.initialize(),
+    ]);
+    await Future.wait([
+      PatientRepository.instance.seedPatientsIfNeeded(),
+      NurseRepository.instance.seedNursesIfNeeded(),
+    ]);
+    runApp(const CareTrackApp());
+  }, (error, stackTrace) {
+    AppLogger.error('Unhandled zoned startup/runtime error.', error, stackTrace);
+  });
 }
 
 class CareTrackApp extends StatelessWidget {

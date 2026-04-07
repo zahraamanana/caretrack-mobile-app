@@ -1,6 +1,8 @@
+import 'user_profile.dart';
+
 class AuthSession {
   final String token;
-  final Map<String, dynamic>? user;
+  final UserProfile? user;
   final bool isMock;
 
   const AuthSession({
@@ -10,19 +12,19 @@ class AuthSession {
   });
 
   String? get userName {
-    final value = user?['name'];
-    return value is String && value.trim().isNotEmpty ? value.trim() : null;
+    final value = user?.name;
+    return value != null && value.trim().isNotEmpty ? value.trim() : null;
   }
 
   String? get userEmail {
-    final value = user?['email'];
-    return value is String && value.trim().isNotEmpty ? value.trim() : null;
+    final value = user?.email;
+    return value != null && value.trim().isNotEmpty ? value.trim() : null;
   }
 
   Map<String, dynamic> toMap() {
     return {
       'token': token,
-      'user': user,
+      'user': user?.toMap(),
       'isMock': isMock,
     };
   }
@@ -31,7 +33,7 @@ class AuthSession {
     return AuthSession(
       token: map['token'] as String? ?? '',
       user: map['user'] is Map
-          ? Map<String, dynamic>.from(map['user'] as Map)
+          ? UserProfile.fromMap(Map<String, dynamic>.from(map['user'] as Map))
           : null,
       isMock: map['isMock'] as bool? ?? false,
     );

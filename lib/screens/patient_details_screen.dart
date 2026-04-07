@@ -6,9 +6,12 @@ import '../models/patient.dart';
 import '../repositories/patient_repository.dart';
 import '../services/app_language_service.dart';
 import '../services/firebase_patient_care_service.dart';
+import '../services/logger_service.dart';
 import '../services/notification_service.dart';
 import '../services/patient_storage_service.dart';
+import '../utils/app_colors.dart';
 import '../widgets/language_selector_button.dart';
+import '../widgets/patient_details_bits.dart';
 
 class PatientDetailsScreen extends StatefulWidget {
   final Patient patient;
@@ -156,12 +159,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
       value: updatedValue,
     );
 
-    try {
-      await FirebasePatientCareService.instance.syncVitals(
+    unawaited(
+      FirebasePatientCareService.instance.syncVitals(
         patient: _patient,
         vitalSigns: updatedValue,
-      );
-    } catch (_) {}
+      ),
+    );
 
     if (!mounted) return;
 
@@ -213,7 +216,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         title: _newTaskTitleController.text.trim(),
         dueTime: _newTaskDueTimeController.text.trim(),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to add a medication task for patient ${_patient.roomNumber}.',
+        error,
+        stackTrace,
+      );
       if (!mounted) return;
       setState(() {
         _isSavingTask = false;
@@ -271,15 +279,24 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         roomNumber: updatedPatient.roomNumber,
         values: updatedCompletion,
       );
-      await FirebasePatientCareService.instance.syncTasks(
-        patient: updatedPatient,
-        completionValues: updatedCompletion,
+      unawaited(
+        FirebasePatientCareService.instance.syncTasks(
+          patient: updatedPatient,
+          completionValues: updatedCompletion,
+        ),
       );
-      await FirebasePatientCareService.instance.syncMedications(
-        patient: updatedPatient,
-        completionValues: updatedCompletion,
+      unawaited(
+        FirebasePatientCareService.instance.syncMedications(
+          patient: updatedPatient,
+          completionValues: updatedCompletion,
+        ),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to persist medication task addition for patient ${updatedPatient.roomNumber}.',
+        error,
+        stackTrace,
+      );
       if (mounted) {
         setState(() {
           _patient = previousPatient;
@@ -319,7 +336,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
 
     try {
       await _deleteMedicationTask(index);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to delete a medication task for patient ${_patient.roomNumber}.',
+        error,
+        stackTrace,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -366,13 +388,17 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         roomNumber: updatedPatient.roomNumber,
         values: updatedCompletion,
       );
-      await FirebasePatientCareService.instance.syncTasks(
-        patient: updatedPatient,
-        completionValues: updatedCompletion,
+      unawaited(
+        FirebasePatientCareService.instance.syncTasks(
+          patient: updatedPatient,
+          completionValues: updatedCompletion,
+        ),
       );
-      await FirebasePatientCareService.instance.syncMedications(
-        patient: updatedPatient,
-        completionValues: updatedCompletion,
+      unawaited(
+        FirebasePatientCareService.instance.syncMedications(
+          patient: updatedPatient,
+          completionValues: updatedCompletion,
+        ),
       );
 
       unawaited(
@@ -381,7 +407,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
           taskCount: previousTaskCount,
         ),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to persist medication task deletion for patient ${updatedPatient.roomNumber}.',
+        error,
+        stackTrace,
+      );
       if (mounted) {
         setState(() {
           _patient = previousPatient;
@@ -486,8 +517,8 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    const primaryColor = Color.fromARGB(255, 110, 101, 168);
-    const accentColor = Color.fromARGB(255, 37, 101, 146);
+    const primaryColor = AppColors.secondary;
+    const accentColor = AppColors.primary;
     final completedTasks = _taskCompletion.where((task) => task).length;
     final hasMedicationTasks = _patient.medicationTasks.isNotEmpty;
     final firstPendingIndex = _taskCompletion.indexWhere((task) => !task);
@@ -561,22 +592,21 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _InfoChip(label: l10n.ageLabel(_patient.age)),
-                      _InfoChip(
+                      PatientInfoChip(label: l10n.ageLabel(_patient.age)),
+                      PatientInfoChip(
                         label: l10n.roomLabel(_patient.roomNumber),
                       ),
-                      _InfoChip(
+                      PatientInfoChip(
                         label: l10n.departmentFloorLabel(
                           _patient.department,
                           _patient.floor,
                         ),
                       ),
-                      _InfoChip(
+                      PatientInfoChip(
                         label: l10n.doctorLabel(_patient.doctorName),
                       ),
-                      _StatusChip(
+                      PatientStatusChip(
                         status: l10n.statusLabel(_patient.status),
-                        statusColor: _patient.statusColor,
                       ),
                     ],
                   ),
@@ -598,7 +628,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                     Expanded(
                       child: Text(
                         l10n.activeAlert,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.red,
                           fontWeight: FontWeight.w600,
                         ),
@@ -609,7 +639,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
               ),
             ],
             const SizedBox(height: 16),
-            _SectionCard(
+            PatientDetailsSectionCard(
               title: l10n.diagnosis,
               child: Text(
                 l10n.localizedPatientValue(
@@ -624,7 +654,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            _SectionCard(
+            PatientDetailsSectionCard(
               title: l10n.nursingNote,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -656,7 +686,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            _SectionCard(
+            PatientDetailsSectionCard(
               title: l10n.medicationTasks,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1024,7 +1054,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            _SectionCard(
+            PatientDetailsSectionCard(
               title: l10n.vitalSigns,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1107,7 +1137,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                       ),
                       child: Text(
                         l10n.saveVitalSigns,
-                        style: TextStyle(color: Colors.white),
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
@@ -1116,85 +1146,6 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final Widget child;
-
-  const _SectionCard({required this.title, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FB),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 37, 101, 146),
-            ),
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  final String label;
-
-  const _InfoChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          color: Color.fromARGB(255, 110, 101, 168),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final String status;
-  final Color statusColor;
-
-  const _StatusChip({required this.status, required this.statusColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(fontWeight: FontWeight.w600, color: statusColor),
       ),
     );
   }

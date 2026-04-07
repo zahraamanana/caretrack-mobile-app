@@ -3,16 +3,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../config/firebase_project_config.dart';
 import '../models/auth_result.dart';
+import '../models/user_profile.dart';
 import 'firestore_service.dart';
+import 'logger_service.dart';
 
 class FirebaseAuthService {
-  FirebaseAuthService._({
+  FirebaseAuthService({
     FirebaseAuth? firebaseAuth,
     FirestoreService? firestoreService,
   }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
        _firestoreService = firestoreService ?? FirestoreService.instance;
 
-  static final FirebaseAuthService instance = FirebaseAuthService._();
+  static final FirebaseAuthService instance = FirebaseAuthService();
 
   final FirebaseAuth _firebaseAuth;
   final FirestoreService _firestoreService;
@@ -95,10 +97,20 @@ class FirebaseAuthService {
         'role': 'nurse',
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to save nurse profile after Firebase sign-up.',
+        error,
+        stackTrace,
+      );
       try {
         await user.delete();
-      } catch (_) {
+      } catch (deleteError, deleteStackTrace) {
+        AppLogger.error(
+          'Failed to roll back Firebase user after sign-up profile save failure.',
+          deleteError,
+          deleteStackTrace,
+        );
         await _firebaseAuth.signOut();
       }
       rethrow;
@@ -134,14 +146,30 @@ class FirebaseAuthService {
       token: await user?.getIdToken(),
       user: user == null
           ? null
-          : {
-              'name': (user.displayName?.trim().isNotEmpty ?? false)
+          : UserProfile(
+              id: user.uid,
+              name: (user.displayName?.trim().isNotEmpty ?? false)
                   ? user.displayName!.trim()
                   : fallbackName,
-              'email': user.email,
-              'uid': user.uid,
-            },
-      isMock: false,
+               email: (user.email ?? '').trim(),
+             ),
     );
+  }
+
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    if (!FirebaseProjectConfig.shouldUseFirebaseAuth) {
+      throw StateError('Firebase Auth is disabled in FirebaseProjectConfig.');
+    }
+
+    try {
+      await _firebaseAuth.sendPasswordResetEmail(email: email.trim());
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to send Firebase password reset email.',
+        error,
+        stackTrace,
+      );
+      rethrow;
+    }
   }
 }
