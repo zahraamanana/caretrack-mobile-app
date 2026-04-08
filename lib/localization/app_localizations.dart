@@ -44,8 +44,7 @@ class AppLocalizations {
       'allFloors': 'All Floors',
       'showingFloorPatients': 'Showing patients assigned to floor',
       'noPatientFound': 'No patient found',
-      'tryAnotherName':
-          'Try another name to quickly reach the right patient.',
+      'tryAnotherName': 'Try another name to quickly reach the right patient.',
       'morningShiftOverview': 'Morning Shift Overview',
       'patientsLabel': 'Patients',
       'medRounds': 'Med Rounds',
@@ -176,8 +175,7 @@ class AppLocalizations {
         'التعافي بعد الجراحة يتقدم بشكل جيد.',
     'Oxygen support active. Doctor notified.':
         'دعم الأكسجين فعال وتم إبلاغ الطبيب.',
-    'Monitor dizziness and hydration levels.':
-        'راقب الدوار ومستوى الترطيب.',
+    'Monitor dizziness and hydration levels.': 'راقب الدوار ومستوى الترطيب.',
     'Recovering steadily after orthopedic procedure.':
         'يتعافى بثبات بعد الإجراء العظمي.',
     'Watch for dehydration and update chart after lunch.':
@@ -216,8 +214,7 @@ class AppLocalizations {
     'Review oxygen support settings': 'راجع إعدادات دعم الأكسجين',
     'Monitor response after nebulizer treatment':
         'راقب الاستجابة بعد العلاج بالبخار',
-    'Update physician if breathing worsens':
-        'حدث الطبيب إذا ساء التنفس',
+    'Update physician if breathing worsens': 'حدث الطبيب إذا ساء التنفس',
     'Check IV fluid line': 'افحص خط المحلول الوريدي',
     'Reassess hydration': 'أعد تقييم الترطيب',
     'Document dizziness changes': 'وثق تغيرات الدوار',
@@ -229,8 +226,7 @@ class AppLocalizations {
     'Update chart after lunch': 'حدث السجل بعد الغداء',
     'Check blood pressure': 'افحص ضغط الدم',
     'Observe infusion site and rate': 'راقب موضع ومعدل التسريب',
-    'Report persistent elevation immediately':
-        'أبلغ عن الارتفاع المستمر فورا',
+    'Report persistent elevation immediately': 'أبلغ عن الارتفاع المستمر فورا',
     'Confirm final antibiotic dose': 'أكد آخر جرعة مضاد حيوي',
     'Review home-care instructions': 'راجع تعليمات الرعاية المنزلية',
     'Recheck temperature': 'أعد فحص الحرارة',
@@ -242,8 +238,7 @@ class AppLocalizations {
         'ضع المضاد الحيوي الموضعي ووثق حالة الجرح',
     'Review bronchodilator': 'راجع موسع القصبات',
     'Check oxygen saturation closely': 'راقب تشبع الأكسجين عن قرب',
-    'Escalate if saturation drops again':
-        'قم بالتصعيد إذا انخفض التشبع مجددا',
+    'Escalate if saturation drops again': 'قم بالتصعيد إذا انخفض التشبع مجددا',
   };
 
   static const Map<String, String> _arabicDueTimes = {
@@ -264,8 +259,7 @@ class AppLocalizations {
       ? 'استخدمي بريد المستشفى الخاص بكِ وكلمة المرور التي اخترتها.'
       : 'Use your hospital email and your own password.';
   String get email => _text('email');
-  String get emailHint =>
-      isArabic ? 'name@hospital.com' : 'name@hospital.com';
+  String get emailHint => isArabic ? 'name@hospital.com' : 'name@hospital.com';
   String get enterEmail => _text('enterEmail');
   String get validEmail => _text('validEmail');
   String get password => _text('password');
@@ -273,10 +267,12 @@ class AppLocalizations {
   String get shortPassword => _text('shortPassword');
   String get forgotPassword => _text('forgotPassword');
   String get login => _text('login');
+  String get logout => isArabic ? 'تسجيل الخروج' : 'Logout';
+  String authActionLabel({required bool isAuthenticated}) =>
+      isAuthenticated ? logout : login;
   String get createAccount => _text('createAccount');
-  String get createNurseAccount => isArabic
-      ? 'إنشاء حساب ممرضة'
-      : 'Create Nurse Account';
+  String get createNurseAccount =>
+      isArabic ? 'إنشاء حساب ممرضة' : 'Create Nurse Account';
   String get createAccountDescription => isArabic
       ? 'أنشئي حسابكِ الخاص باستخدام اسمكِ وبريدكِ وكلمة المرور التي تختارينها.'
       : 'Create your own nurse account with your name, email, and password.';
@@ -285,17 +281,14 @@ class AppLocalizations {
       isArabic ? 'أدخلي الاسم الكامل' : 'Enter your full name';
   String get confirmPassword =>
       isArabic ? 'تأكيد كلمة المرور' : 'Confirm Password';
-  String get enterConfirmPassword => isArabic
-      ? 'أدخلي تأكيد كلمة المرور'
-      : 'Enter your password again';
-  String get passwordsDoNotMatch => isArabic
-      ? 'كلمتا المرور غير متطابقتين'
-      : 'Passwords do not match';
+  String get enterConfirmPassword =>
+      isArabic ? 'أدخلي تأكيد كلمة المرور' : 'Enter your password again';
+  String get passwordsDoNotMatch =>
+      isArabic ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match';
   String get creatingAccount =>
       isArabic ? 'جارٍ إنشاء الحساب...' : 'Creating account...';
-  String get accountCreated => isArabic
-      ? 'تم إنشاء الحساب بنجاح.'
-      : 'Account created successfully.';
+  String get accountCreated =>
+      isArabic ? 'تم إنشاء الحساب بنجاح.' : 'Account created successfully.';
   String get accountCreateFailed => isArabic
       ? 'تعذر إنشاء الحساب. حاولي مرة ثانية.'
       : 'Unable to create the account. Please try again.';
@@ -305,8 +298,7 @@ class AppLocalizations {
       ? 'ابحث باسم المريض أو الغرفة أو القسم أو الطابق'
       : _text('searchHint');
   String get monitorRoomUpdates => _text('monitorRoomUpdates');
-  String get assignedFloor =>
-      isArabic ? 'الطابق المكلّف' : 'Assigned Floor';
+  String get assignedFloor => isArabic ? 'الطابق المكلّف' : 'Assigned Floor';
   String get allFloors => isArabic ? 'كل الطوابق' : 'All Floors';
   String get noPatientFound => _text('noPatientFound');
   String get tryAnotherName => _text('tryAnotherName');
@@ -348,8 +340,7 @@ class AppLocalizations {
   String get demoAuthModeNotice => isArabic
       ? 'وضع تجريبي مفعّل حاليًا. أول ما يصير عنا backend حقيقي منربطه من ApiConfig.'
       : 'Demo auth mode is active for now. Once your real backend is ready, update ApiConfig to connect it.';
-  String get signingIn =>
-      isArabic ? 'جارٍ تسجيل الدخول...' : 'Signing in...';
+  String get signingIn => isArabic ? 'جارٍ تسجيل الدخول...' : 'Signing in...';
   String get createAccountApiNextStep => isArabic
       ? 'ربط إنشاء الحساب بالـ API رح نعمله بالخطوة الجاية.'
       : 'Create account API will be connected in the next step.';
@@ -367,9 +358,8 @@ class AppLocalizations {
   String get syncUsingLocalData => isArabic
       ? 'التطبيق يعتمد حاليًا على البيانات المحلية.'
       : 'The app is currently using local data.';
-  String get syncingPatients => isArabic
-      ? 'جارٍ مزامنة بيانات المرضى...'
-      : 'Syncing patient data...';
+  String get syncingPatients =>
+      isArabic ? 'جارٍ مزامنة بيانات المرضى...' : 'Syncing patient data...';
   String pendingSyncChanges(int count) => isArabic
       ? 'يوجد $count تغييرات محلية بانتظار المزامنة.'
       : '$count local changes are waiting to sync.';
@@ -382,12 +372,10 @@ class AppLocalizations {
   String syncBlockedByPendingChanges(int count) => isArabic
       ? 'يوجد $count تغييرات محلية. أوقفنا الجلب من الإنترنت حتى لا نخسر تعديلاتك.'
       : '$count local changes are pending. Online fetch was paused to protect your updates.';
-  String get lastSyncNever => isArabic
-      ? 'لم يتم إجراء مزامنة أونلاين بعد.'
-      : 'No manual sync yet.';
-  String lastSyncLabel(String value) => isArabic
-      ? 'آخر مزامنة: $value'
-      : 'Last sync: $value';
+  String get lastSyncNever =>
+      isArabic ? 'لم يتم إجراء مزامنة أونلاين بعد.' : 'No manual sync yet.';
+  String lastSyncLabel(String value) =>
+      isArabic ? 'آخر مزامنة: $value' : 'Last sync: $value';
   String get tryAgain => isArabic ? 'إعادة المحاولة' : 'Try Again';
   String get addMedicationTask =>
       isArabic ? 'إضافة مهمة دواء' : 'Add Medication Task';
@@ -397,8 +385,7 @@ class AppLocalizations {
   String get enterTaskTitle =>
       isArabic ? 'أدخلي اسم المهمة' : 'Enter task title';
   String get taskTitle => isArabic ? 'اسم المهمة' : 'Task Title';
-  String get enterDueTime =>
-      isArabic ? 'أدخلي وقت المهمة' : 'Enter due time';
+  String get enterDueTime => isArabic ? 'أدخلي وقت المهمة' : 'Enter due time';
   String get dueTime => isArabic ? 'وقت المهمة' : 'Due Time';
   String get exampleTime => isArabic ? 'مثال: 3:00 PM' : 'Example: 3:00 PM';
   String get saveTask => isArabic ? 'حفظ المهمة' : 'Save Task';
@@ -414,27 +401,22 @@ class AppLocalizations {
   String get cancel => isArabic ? 'إلغاء' : 'Cancel';
   String get delete => isArabic ? 'حذف' : 'Delete';
   String get taskDeleted => isArabic ? 'تم حذف المهمة.' : 'Task deleted.';
-  String get deleteTaskTooltip =>
-      isArabic ? 'حذف المهمة' : 'Delete task';
-  String get adminDashboard =>
-      isArabic ? 'لوحة الإدارة' : 'Admin Dashboard';
-  String get quickOverview =>
-      isArabic ? 'نظرة عامة سريعة' : 'Quick Overview';
+  String get deleteTaskTooltip => isArabic ? 'حذف المهمة' : 'Delete task';
+  String get adminDashboard => isArabic ? 'لوحة الإدارة' : 'Admin Dashboard';
+  String get quickOverview => isArabic ? 'نظرة عامة سريعة' : 'Quick Overview';
   String get adminOverviewDescription => isArabic
       ? 'تابعي توزيع المرضى والممرضين والإنذارات من مكان واحد.'
       : 'Monitor patients, nurse coverage, and alerts from one place.';
   String get nurses => isArabic ? 'الممرضون' : 'Nurses';
   String get departments => isArabic ? 'الأقسام' : 'Departments';
-  String get loadingAdminDashboard => isArabic
-      ? 'جارٍ تحميل لوحة الإدارة...'
-      : 'Loading admin dashboard...';
+  String get loadingAdminDashboard =>
+      isArabic ? 'جارٍ تحميل لوحة الإدارة...' : 'Loading admin dashboard...';
   String get adminDashboardLoadError => isArabic
       ? 'تعذّر تحميل لوحة الإدارة من قاعدة البيانات.'
       : 'Unable to load the admin dashboard from the local database.';
   String get noDepartment => isArabic ? 'لا يوجد قسم' : 'No department';
-  String patientsUnderAgeCount(int count) => isArabic
-      ? '$count مرضى تحت عمر 20'
-      : '$count patients are under age 20';
+  String patientsUnderAgeCount(int count) =>
+      isArabic ? '$count مرضى تحت عمر 20' : '$count patients are under age 20';
   String get pediatricsFloorNote => isArabic
       ? 'معظمهم ضمن قسم الأطفال على الطابق 2.'
       : 'Most of them are covered in Pediatrics on floor 2.';
@@ -443,17 +425,14 @@ class AppLocalizations {
   String departmentStatSummary(int patientCount, int alertCount) => isArabic
       ? '$patientCount مرضى • $alertCount إنذارات'
       : '$patientCount patients • $alertCount alerts';
-  String get floorCoverage =>
-      isArabic ? 'تغطية الطوابق' : 'Floor Coverage';
+  String get floorCoverage => isArabic ? 'تغطية الطوابق' : 'Floor Coverage';
   String floorCoverageTitle(String floor) =>
       isArabic ? 'الطابق $floor' : 'Floor $floor';
   String floorCoverageSummary(int patientCount, int nurseCount) => isArabic
       ? '$patientCount مرضى • $nurseCount ممرضون مكلّفون'
       : '$patientCount patients • $nurseCount assigned nurses';
-  String get patientList =>
-      isArabic ? 'قائمة المرضى' : 'Patient List';
-  String get adminInsights =>
-      isArabic ? 'مؤشرات الإدارة' : 'Admin Insights';
+  String get patientList => isArabic ? 'قائمة المرضى' : 'Patient List';
+  String get adminInsights => isArabic ? 'مؤشرات الإدارة' : 'Admin Insights';
   String floorsCoverageInsight(int nurseCount, int totalFloors) => isArabic
       ? '$nurseCount ممرضين وممرضات مغطّين $totalFloors طوابق.'
       : '$nurseCount nurses are covering $totalFloors floors.';
@@ -479,11 +458,9 @@ class AppLocalizations {
     return isArabic ? 'الطبيب: $value' : 'Doctor: $value';
   }
 
-  String get notAssigned =>
-      isArabic ? 'غير محدد' : 'Not Assigned';
+  String get notAssigned => isArabic ? 'غير محدد' : 'Not Assigned';
   String get edit => isArabic ? 'تعديل' : 'Edit';
-  String get addNewPatient =>
-      isArabic ? 'إضافة مريض جديد' : 'Add New Patient';
+  String get addNewPatient => isArabic ? 'إضافة مريض جديد' : 'Add New Patient';
   String get editPatient => isArabic ? 'تعديل المريض' : 'Edit Patient';
   String get addPatientDescription => isArabic
       ? 'أدخلي البيانات الأساسية، وبعدها رح يظهر المريض مباشرة.'
@@ -504,11 +481,9 @@ class AppLocalizations {
   String get department => isArabic ? 'القسم' : 'Department';
   String get floor => isArabic ? 'الطابق' : 'Floor';
   String get status => isArabic ? 'الحالة' : 'Status';
-  String get enterDiagnosis =>
-      isArabic ? 'أدخلي التشخيص' : 'Enter diagnosis';
+  String get enterDiagnosis => isArabic ? 'أدخلي التشخيص' : 'Enter diagnosis';
   String get saving => isArabic ? 'جارٍ الحفظ...' : 'Saving...';
-  String get saveChanges =>
-      isArabic ? 'حفظ التعديلات' : 'Save Changes';
+  String get saveChanges => isArabic ? 'حفظ التعديلات' : 'Save Changes';
   String get savePatient => isArabic ? 'حفظ المريض' : 'Save Patient';
   String get roomAlreadyExists => isArabic
       ? 'رقم الغرفة موجود مسبقًا. جرّبي رقم غرفة مختلف.'
@@ -679,42 +654,33 @@ class AppLocalizations {
       ? 'ابحثي باسم الممرض أو الطابق أو القسم'
       : 'Search by nurse, floor, department, or shift';
 
-  String get noMatchingPatients => isArabic
-      ? 'لم نجد مرضى مطابقين للبحث.'
-      : 'No matching patients found.';
+  String get noMatchingPatients =>
+      isArabic ? 'لم نجد مرضى مطابقين للبحث.' : 'No matching patients found.';
 
-  String get noMatchingNurses => isArabic
-      ? 'لم نجد ممرضين مطابقين للبحث.'
-      : 'No matching nurses found.';
+  String get noMatchingNurses =>
+      isArabic ? 'لم نجد ممرضين مطابقين للبحث.' : 'No matching nurses found.';
 
-  String nurseCountLabel(int count) => isArabic
-      ? '$count ممرضين وممرضات محفوظين'
-      : '$count nurses saved';
+  String nurseCountLabel(int count) =>
+      isArabic ? '$count ممرضين وممرضات محفوظين' : '$count nurses saved';
 
   String get nurseShiftOverview => isArabic
       ? 'دوام بسيط وواضح ليسهّل التغطية اليومية.'
       : 'A simple shift overview to support daily coverage.';
 
-  String get nurseList =>
-      isArabic ? 'قائمة الممرضين' : 'Nurse List';
+  String get nurseList => isArabic ? 'قائمة الممرضين' : 'Nurse List';
 
-  String get addNewNurse =>
-      isArabic ? 'إضافة ممرض جديد' : 'Add New Nurse';
+  String get addNewNurse => isArabic ? 'إضافة ممرض جديد' : 'Add New Nurse';
 
-  String get editNurse =>
-      isArabic ? 'تعديل الممرض' : 'Edit Nurse';
+  String get editNurse => isArabic ? 'تعديل الممرض' : 'Edit Nurse';
 
-  String get nurseName =>
-      isArabic ? 'اسم الممرض' : 'Nurse Name';
+  String get nurseName => isArabic ? 'اسم الممرض' : 'Nurse Name';
 
   String get enterNurseName =>
       isArabic ? 'أدخلي اسم الممرض' : 'Enter nurse name';
 
-  String get shiftStart =>
-      isArabic ? 'بداية الدوام' : 'Shift Start';
+  String get shiftStart => isArabic ? 'بداية الدوام' : 'Shift Start';
 
-  String get shiftEnd =>
-      isArabic ? 'نهاية الدوام' : 'Shift End';
+  String get shiftEnd => isArabic ? 'نهاية الدوام' : 'Shift End';
 
   String get enterShiftStart =>
       isArabic ? 'أدخلي بداية الدوام' : 'Enter shift start';
@@ -722,19 +688,16 @@ class AppLocalizations {
   String get enterShiftEnd =>
       isArabic ? 'أدخلي نهاية الدوام' : 'Enter shift end';
 
-  String get saveNurse =>
-      isArabic ? 'حفظ الممرض' : 'Save Nurse';
+  String get saveNurse => isArabic ? 'حفظ الممرض' : 'Save Nurse';
 
   String get nurseSaveFailed => isArabic
       ? 'تعذّر حفظ الممرض. جرّبي مرة ثانية.'
       : 'Unable to save the nurse. Please try again.';
 
-  String get noNursesYet => isArabic
-      ? 'لا يوجد ممرضون محفوظون بعد.'
-      : 'No nurses saved yet.';
+  String get noNursesYet =>
+      isArabic ? 'لا يوجد ممرضون محفوظون بعد.' : 'No nurses saved yet.';
 
-  String get deleteNurse =>
-      isArabic ? 'حذف الممرض' : 'Delete Nurse';
+  String get deleteNurse => isArabic ? 'حذف الممرض' : 'Delete Nurse';
 
   String deleteNurseConfirmation(String name) => isArabic
       ? 'هل أنتِ متأكدة أنك تريدين حذف $name؟'

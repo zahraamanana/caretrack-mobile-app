@@ -1,5 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart'
-    show FirebaseAuthException;
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -100,12 +99,26 @@ class _LoginScreenState extends State<LoginScreen> {
         _authError = _localizedAuthError(l10n, error.message);
       });
     } catch (error, stackTrace) {
-      AppLogger.error('Login failed with an unexpected error.', error, stackTrace);
+      AppLogger.error(
+        'Login failed with an unexpected error.',
+        error,
+        stackTrace,
+      );
       if (!mounted) return;
       setState(() {
         _authError = _localizedAuthError(l10n, null);
       });
     }
+  }
+
+  Future<void> _handlePrimaryAuthAction() async {
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.isAuthenticated) {
+      await authProvider.signOut();
+      return;
+    }
+
+    await _submit();
   }
 
   Future<void> _sendPasswordReset() async {
@@ -194,6 +207,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final authProvider = context.watch<AuthProvider>();
+    final authActionLabel = l10n.authActionLabel(
+      isAuthenticated: authProvider.isAuthenticated,
+    );
     final isMockMode =
         !FirebaseProjectConfig.shouldUseFirebaseAuth &&
         (ApiConfig.useMockAuth || !ApiConfig.hasConfiguredBaseUrl);
@@ -381,7 +397,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         height: 55,
                         child: ElevatedButton(
-                          onPressed: authProvider.isSubmitting ? null : _submit,
+                          onPressed: authProvider.isSubmitting
+                              ? null
+                              : _handlePrimaryAuthAction,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color.fromARGB(
                               255,
@@ -419,7 +437,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ],
                                 )
                               : Text(
-                                  l10n.login,
+                                  authActionLabel,
                                   style: const TextStyle(
                                     fontSize: 18,
                                     color: Colors.white,

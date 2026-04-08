@@ -43,8 +43,12 @@ class _PatientDashboardState extends State<PatientDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
     final patientProvider = context.watch<PatientProvider>();
     final l10n = AppLocalizations.of(context);
+    final authActionLabel = l10n.authActionLabel(
+      isAuthenticated: authProvider.isAuthenticated,
+    );
     const primaryColor = AppColors.secondary;
     final query = _searchController.text.trim().toLowerCase();
     final patients = patientProvider.patients;
@@ -82,11 +86,10 @@ class _PatientDashboardState extends State<PatientDashboard> {
           const LanguageSelectorButton(iconColor: Colors.white),
           IconButton(
             onPressed: () async {
-              final authProvider = context.read<AuthProvider>();
               await authProvider.signOut();
             },
             icon: const Icon(Icons.logout_rounded),
-            tooltip: l10n.isArabic ? 'تسجيل الخروج' : 'Logout',
+            tooltip: authActionLabel,
           ),
           IconButton(
             onPressed: () async {
@@ -573,7 +576,9 @@ class _SyncStatusCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              hasPendingChanges ? Icons.sync_problem_rounded : Icons.cloud_done_rounded,
+              hasPendingChanges
+                  ? Icons.sync_problem_rounded
+                  : Icons.cloud_done_rounded,
               color: const Color.fromARGB(255, 110, 101, 168),
             ),
           ),

@@ -18,17 +18,17 @@ import 'utils/app_colors.dart';
 import 'widgets/app_launch_screen.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  FlutterError.onError = (details) {
-    FlutterError.presentError(details);
-    AppLogger.error(
-      'Unhandled Flutter framework error.',
-      details.exception,
-      details.stack,
-    );
-  };
-
   await runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      AppLogger.error(
+        'Unhandled Flutter framework error.',
+        details.exception,
+        details.stack,
+      );
+    };
+
     await AppLanguageService.instance.loadSavedLanguage();
     await Future.wait([
       FirebaseBootstrapService.instance.initialize(),
